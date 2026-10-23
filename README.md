@@ -13,7 +13,7 @@ It runs in any modern browser on phones, tablets and laptops. Once the page is o
 
 ## Using it
 
-1. **Search area.** Enter the four corners in order around the area, or a center point with length, width and heading.
+1. **Search area.** Enter the four corners in order around the area (type them, pick them on a map, or paste all four at once), or a center point with length, width and heading.
 2. **Passes.** Set the number of passes, or the lane spacing (usually about twice the sonar's range per side, minus overlap). Choose which corner to start at and which way the passes run.
 3. **Names.** Give each grid its own route name and waypoint prefix so grids don't overwrite each other on the unit.
 4. **Save** the .hwr or .gpx file and copy it to the unit's SD card, then import nav data on the unit.
@@ -28,7 +28,15 @@ Each corner box accepts any of these. The line under the box shows how it was re
 | Degrees + decimal minutes (Humminbird, Garmin) | `N41 21.904 W112 04.411` |
 | Degrees, minutes, seconds | `41°21'54.2"N 112°04'24.7"W` · `41 21 54.2 N 112 04 24.7 W` |
 
-Spaces work in place of ° ′ ″. Use N/S/E/W or a minus sign. Pasting four lines into corner 1 fills all four corners.
+Spaces work in place of ° ′ ″. Use N/S/E/W or a minus sign.
+
+### Picking corners on a map
+
+**Pick on map** opens a full-screen satellite map. Tap to place corners 1 to 4 in order around the area. Drag or pinch to move the map, use **My location** (crosshair button) or **Go to** a typed position to get there, tap a corner number to move that corner, and **Undo** or **Clear** to start again. **Use corners** fills in the four boxes.
+
+### Pasting all four corners
+
+**Paste all 4** opens a box that takes all four corners in one paste: one per line, all on one line, numbered or labelled (`Corner 1: …`), or a GPX or KML snippet from CalTopo, Google Earth and similar. Pasting several positions straight into any corner box works too.
 
 ### Getting the file onto the SD card from a phone
 

@@ -42,6 +42,7 @@ async def tile_handler(route):
 results = []
 def check(profile, name, ok, detail=''):
     results.append((profile, name, bool(ok), detail))
+    if os.environ.get('VERBOSE'): print(('PASS ' if ok else 'FAIL ') + profile + ': ' + name + ('  ' + str(detail) if not ok else ''), flush=True)
 
 def gpsbabel_count(path, fmt):
     out = subprocess.run(['gpsbabel', '-r', '-i', fmt, '-f', path, '-o', 'unicsv', '-F', '-'],
@@ -49,8 +50,9 @@ def gpsbabel_count(path, fmt):
     return len(out.stdout.strip().splitlines()) - 1 if out.returncode == 0 else -1
 
 async def run_profile(b, name, opts):
-    ctx = await b.new_context(accept_downloads=True, **opts)
+    ctx = await b.new_context(accept_downloads=True, permissions=['geolocation'], geolocation={'latitude': 41.3655, 'longitude': -112.0745, 'accuracy': 12}, **opts)
     pg = await ctx.new_page()
+    pg.set_default_timeout(int(os.environ.get('PW_TIMEOUT', '20000')))
     errs = []
     pg.on('pageerror', lambda e: errs.append(str(e)))
     pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' and 'net::' not in m.text and 'Failed to load resource' not in m.text else None)
@@ -191,12 +193,12 @@ async def run_profile(b, name, opts):
     await ctx.route('https://basemap.nationalmap.gov/**', tile_handler)
     await pg.evaluate('window.dispatchEvent(new Event("online"))')
     await pg.wait_for_function("document.getElementById('sat-credit').textContent.startsWith('Imagery')", timeout=8000)
-    tiles = await pg.locator('#chart .sat-tiles image').count()
-    fell_back = await pg.eval_on_selector_all('#chart .sat-tiles svg', 'els => els.filter(e => e.getAttribute("viewBox") !== "0 0 256 256").length')
+    tiles = await pg.locator('#chart .vp > .sat-tiles image').count()
+    fell_back = await pg.eval_on_selector_all('#chart .vp > .sat-tiles svg', 'els => els.filter(e => e.getAttribute("viewBox") !== "0 0 256 256").length')
     check(name, 'satellite tiles shown, missing zoom falls back to parent', tiles > 0 and fell_back == tiles and await pg.eval_on_selector('#chart', 'e => e.classList.contains("sat")'), f'{tiles} tiles, {fell_back} via fallback')
     await pg.screenshot(path=f'{OUT}/{name}-satellite.png', full_page=False)
     await pg.click('#sat-toggle')
-    check(name, 'satellite toggle turns imagery off', await pg.locator('#chart .sat-tiles image').count() == 0 and await pg.inner_text('#sat-toggle') == 'Satellite: off')
+    check(name, 'satellite toggle turns imagery off', await pg.locator('#chart .vp > .sat-tiles image').count() == 0 and await pg.inner_text('#sat-toggle') == 'Satellite: off')
     await pg.click('#sat-toggle')
     await ctx.unroute('https://basemap.nationalmap.gov/**')
     await ctx.route('https://basemap.nationalmap.gov/**', lambda r: r.abort())
@@ -204,6 +206,85 @@ async def run_profile(b, name, opts):
     await pg.wait_for_function("document.getElementById('sat-credit').textContent.startsWith('No satellite')", timeout=8000)
     check(name, 'no internet: preview falls back to plain water', not await pg.eval_on_selector('#chart', 'e => e.classList.contains("sat")') and await pg.locator('#chart .pass').count() == 20)
     await ctx.unroute('https://basemap.nationalmap.gov/**')
+
+    # Paste all four corners in one go
+    await pg.click('#paste-open')
+    check(name, 'paste box opens', await vis('#paste-box'))
+    await pg.fill('#paste-box', 'N41 21.9035 W112 04.41138 N41 22.1784 W112 04.41138 N41 22.1784 W112 04.7145 N41 21.9035 W112 04.7145')
+    filled = [await pg.input_value(f'#c{i}') for i in range(4)]
+    check(name, 'pasting one line of 4 positions fills all corners',
+          filled[2] == 'N 41 22.1784 W 112 04.7145' and 'Filled corners' in await pg.inner_text('#paste-status'), json.dumps(filled))
+    await pg.fill('#paste-box', '41.36506, -112.07352\n41.36964, -112.07352')
+    check(name, 'pasting too few positions explains the problem', 'need 4' in await pg.inner_text('#paste-status')
+          and await pg.input_value('#c2') == 'N 41 22.1784 W 112 04.7145')
+    gpx = '<gpx>' + ''.join(f'<wpt lat="{la}" lon="{lo}"/>' for la, lo in [(41.3650583, -112.073523), (41.36964, -112.073523), (41.36964, -112.078575), (41.3650583, -112.078575)]) + '</gpx>'
+    await pg.fill('#paste-box', gpx)
+    check(name, 'pasting GPX waypoints fills the corners', await pg.input_value('#c3') == '41.365058, -112.078575')
+    await pg.click('#paste-open')
+    check(name, 'paste box closes', not await vis('#paste-box'))
+
+    # Pick corners on a map
+    await ctx.route('https://basemap.nationalmap.gov/**', tile_handler)
+    before = [await pg.input_value(f'#c{i}') for i in range(4)]
+    await pg.click('#pick-open')
+    await pg.wait_for_selector('#pick-map .vp')
+    pbox = await pg.locator('#pick-map').bounding_box()
+    vw = opts['viewport']
+    check(name, 'picker fills the screen, no sideways scroll', await vis('#picker') and pbox['width'] >= vw['width'] - 1
+          and await pg.evaluate('document.documentElement.scrollWidth') <= vw['width'])
+    check(name, 'picker shows the current corners', await pg.locator('#pick-map .pk-dot').count() == 4 and await pg.is_disabled('#pick-undo'))
+    await pg.click('#pick-cancel')
+    check(name, 'Cancel closes without changing corners', not await vis('#picker') and [await pg.input_value(f'#c{i}') for i in range(4)] == before)
+
+    await pg.click('#pick-open'); await pg.wait_for_selector('#pick-map .vp')
+    await pg.click('#pick-clear')
+    check(name, 'Clear removes the corners and asks for corner 1', await pg.locator('#pick-map .pk-dot').count() == 0
+          and 'corner 1' in await pg.inner_text('#pick-msg') and await pg.is_disabled('#pick-done'))
+    pbox = await pg.locator('#pick-map').bounding_box()
+    spots = [(0.35, 0.70), (0.35, 0.35), (0.65, 0.35), (0.65, 0.70)]   # SW, NW, NE, SE in screen terms
+    pts = [(pbox['x'] + pbox['width'] * fx, pbox['y'] + pbox['height'] * fy) for fx, fy in spots]
+    cdp = await ctx.new_cdp_session(pg) if opts.get('has_touch') else None
+    async def tap(x, y):
+        if cdp:
+            await cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x, 'y': y, 'id': 0}]})
+            await cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
+        else:
+            await pg.mouse.click(x, y)
+        await pg.wait_for_timeout(60)
+    async def swipe(x, y, dx, dy):
+        if cdp:
+            await cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': x, 'y': y, 'id': 0}]})
+            for i in range(1, 7):
+                await cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': x + dx * i / 6, 'y': y + dy * i / 6, 'id': 0}]})
+            await cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
+        else:
+            await pg.mouse.move(x, y); await pg.mouse.down(); await pg.mouse.move(x + dx, y + dy, steps=6); await pg.mouse.up()
+        await pg.wait_for_timeout(400)
+    for x, y in pts[:3]: await tap(x, y)
+    check(name, 'tapping places corners in order', await pg.locator('#pick-map .pk-dot').count() == 3 and 'corner 4' in await pg.inner_text('#pick-msg'))
+    await pg.click('#pick-undo')
+    check(name, 'Undo removes the last corner', await pg.locator('#pick-map .pk-dot').count() == 2 and 'corner 3' in await pg.inner_text('#pick-msg'))
+    await swipe(pbox['x'] + pbox['width'] / 2, pbox['y'] + pbox['height'] / 2, 40, 0)
+    check(name, 'dragging moves the map without placing a corner', await pg.locator('#pick-map .pk-dot').count() == 2 and await pg.is_enabled('#pick-fit'))
+    await pg.click('#pick-fit'); await pg.wait_for_timeout(200)
+    for x, y in pts[2:]: await tap(x, y)
+    check(name, 'all four placed enables Use corners', await pg.locator('#pick-map .pk-dot').count() == 4
+          and await pg.locator('#pick-map .pk-area').count() == 1 and await pg.is_enabled('#pick-done'))
+    await pg.click('[data-pc="1"]')
+    check(name, 'picking a number lets you move that corner', 'move corner 2' in await pg.inner_text('#pick-msg'))
+    await pg.fill('#pick-goto-in', '40.7608, -111.8910'); await pg.press('#pick-goto-in', 'Enter'); await pg.wait_for_timeout(200)
+    check(name, 'Go to centers on a typed position', 'Centered on' in await pg.inner_text('#pick-status') and await pg.locator('#pick-map .pk-goto').count() == 1)
+    await pg.click('#pick-me'); await pg.wait_for_timeout(400)
+    check(name, 'My location centers on the device position', 'your location' in await pg.inner_text('#pick-status') and await pg.locator('#pick-map .pk-me').count() == 1)
+    await pg.click('#pick-done')
+    got = [json.loads('[' + (await pg.input_value(f'#c{i}')) + ']') for i in range(4)]
+    ok_shape = got[1][0] > got[0][0] and got[2][1] > got[1][1] and abs(got[0][1] - got[1][1]) < 1e-4 and abs(got[2][0] - got[1][0]) < 1e-4
+    check(name, 'Use corners fills the boxes with the tapped positions', not await vis('#picker') and ok_shape and await pg.locator('#chart .pass').count() > 0, json.dumps(got))
+    await pg.click('#pick-open'); await pg.wait_for_selector('#pick-map .vp')
+    await pg.keyboard.press('Escape')
+    check(name, 'Escape closes the picker', not await vis('#picker'))
+    await ctx.unroute('https://basemap.nationalmap.gov/**')
+    for i, v in enumerate(before): await pg.fill(f'#c{i}', v)
 
     await pg.screenshot(path=f'{OUT}/{name}.png', full_page=True)
     check(name, 'no script errors', not errs, str(errs[:3]))
@@ -213,11 +294,12 @@ async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
         for name, opts in PROFILES.items():
+            if os.environ.get('ONLY') and name not in os.environ['ONLY'].split(','): continue
             await run_profile(b, name, opts)
         await b.close()
     srv.shutdown()
     width = max(len(r[1]) for r in results)
-    for prof in PROFILES:
+    for prof in [p for p in PROFILES if any(r[0] == p for r in results)]:
         rs = [r for r in results if r[0] == prof]
         print(f'\n{prof}: {sum(r[2] for r in rs)}/{len(rs)} passed')
         for _, n, ok, d in rs:

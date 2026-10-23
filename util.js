@@ -67,6 +67,85 @@
     return { lat, lon };
   }
 
+  // Several points pasted at once: one per line, separated by ; or |, all on one line,
+  // labelled ("Corner 1: ..."), or a GPX / KML snippet. Returns { pts: [{lat, lon, text}], how }
+  // or { error }. `text` keeps the user's own wording for each point where there is one.
+  function parseCorners(input, want) {
+    want = want || 4;
+    const t = String(input || '').trim();
+    if (!t) return { empty: true };
+    let pts = null, how = '';
+
+    const gpx = [];
+    for (const m of t.matchAll(/<(?:wpt|rtept|trkpt)\b[^>]*>/gi)) {
+      const la = /\blat\s*=\s*["']([-+\d.]+)["']/i.exec(m[0]), lo = /\blon\s*=\s*["']([-+\d.]+)["']/i.exec(m[0]);
+      if (la && lo) gpx.push({ lat: +la[1], lon: +lo[1] });
+    }
+    if (gpx.length) { pts = gpx; how = 'GPX'; }
+    if (!pts) {
+      const kml = [];
+      for (const b of t.matchAll(/<(?:gx:)?coord(?:inates)?\b[^>]*>([\s\S]*?)<\/(?:gx:)?coord(?:inates)?>/gi)) {
+        b[1].trim().split(/\s+/).forEach(tr => {
+          const v = tr.split(',').map(Number);           // KML order is lon,lat[,alt]
+          if (v.length >= 2 && isFinite(v[0]) && isFinite(v[1])) kml.push({ lat: v[1], lon: v[0] });
+        });
+      }
+      if (kml.length) { pts = kml; how = 'KML'; }
+    }
+    if (pts) {
+      // A closed outline repeats its first point at the end.
+      if (pts.length === want + 1 && Math.abs(pts[0].lat - pts[want].lat) < 1e-7 && Math.abs(pts[0].lon - pts[want].lon) < 1e-7)
+        pts = pts.slice(0, want);
+      if (pts.some(p => Math.abs(p.lat) > 90 || Math.abs(p.lon) > 180)) return { error: `The ${how} has a position out of range.` };
+      pts = pts.map(p => ({ lat: p.lat, lon: p.lon, text: p.lat.toFixed(6) + ', ' + p.lon.toFixed(6) }));
+    } else {
+      // Plain text. Drop labels such as "Corner 1 (NW):", "Pt 2 =", "3)" or "4. ".
+      const lines = t.split(/\r?\n/).map(l => l
+        .replace(/\([A-Za-z\s]*\)/g, ' ')
+        .replace(/^\s*[A-Za-z]{2,}[\w #\/.-]*?\s*[:=]\s*/, '')
+        .replace(/^\s*(?:(?:corner|point|pt|wp|waypoint)\s*#?\s*\d+\s*[-:.)=]?|#?\d+\s*[:)]|\d+\.\s+)\s*/i, '')
+        .trim());
+      const segs = lines.join('\n').split(/\r?\n|;|\|/).map(s => s.trim()).filter(Boolean);
+      if (segs.length >= 2) {
+        const parsed = segs.map(parseCoord);
+        if (parsed.every(p => !p.error)) { pts = parsed.map((p, i) => ({ lat: p.lat, lon: p.lon, text: segs[i] })); how = 'separate lines'; }
+      }
+      if (!pts) {
+        // Everything on one run: split the numbers and hemisphere letters into points.
+        let raw = lines.join(' ').replace(/[−‐‑‒–—﹣－]/g, '-');
+        if (/\d\s*(?:deg|d)(?![a-z])/i.test(raw)) raw = raw.replace(/(\d)\s*(?:deg|min|sec|d|m|s)(?=[\s\d.,;:\/NSEWnsew-]|$)/g, '$1 ');
+        const toks = raw.toUpperCase().replace(/[°º˚'’′"”″,;\/]/g, ' ').match(/[NSEW]|[-+]?\d+(?:\.\d+)?/g) || [];
+        const isL = x => /^[NSEW]$/.test(x);
+        const groups = [];
+        if (toks.some(isL)) {
+          let cur = [], letters = 0;
+          const prefix = isL(toks[0]);
+          for (const x of toks) {
+            if (isL(x) && prefix && letters === 2) { groups.push(cur); cur = []; letters = 0; }
+            cur.push(x);
+            if (isL(x)) { letters++; if (!prefix && letters === 2) { groups.push(cur); cur = []; letters = 0; } }
+          }
+          if (cur.length) groups.push(cur);
+        } else if (toks.length % want === 0 && [2, 4, 6].includes(toks.length / want)) {
+          const per = toks.length / want;
+          for (let i = 0; i < toks.length; i += per) groups.push(toks.slice(i, i + per));
+        }
+        if (groups.length) {
+          const parsed = groups.map(g => ({ g: g.join(' '), p: parseCoord(g.join(' ')) }));
+          const bad = parsed.findIndex(x => x.p.error);
+          if (bad >= 0) return { error: `Point ${bad + 1} ("${parsed[bad].g}"): ${parsed[bad].p.error}` };
+          pts = parsed.map(x => ({ lat: x.p.lat, lon: x.p.lon, text: x.g })); how = 'one line';
+        }
+      }
+    }
+    if (!pts) {
+      const one = parseCoord(t);
+      return { error: one.error ? "Couldn't find " + want + ' positions in that text.' : 'That is only one position. Paste all ' + want + ' corners.' };
+    }
+    if (pts.length !== want) return { error: `Found ${pts.length} position${pts.length === 1 ? '' : 's'}; need ${want}.` };
+    return { pts, how };
+  }
+
   // Degrees + decimal minutes, the way Humminbird units display positions.
   function fmtDDM(v, isLat) {
     const h = isLat ? (v < 0 ? 'S' : 'N') : (v < 0 ? 'W' : 'E');
@@ -186,7 +265,7 @@
     return out;
   }
 
-  const api = { parseCoord, fmtDDM, fmtPos, offset, boxFromCenter, orient, project, cornersCrossed, crc32, makeZip };
+  const api = { parseCoord, parseCorners, fmtDDM, fmtPos, offset, boxFromCenter, orient, project, cornersCrossed, crc32, makeZip };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.GridUtil = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -133,8 +133,9 @@ input.invalid { border-color: var(--bad); }
 .preview { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
 .preview svg { display: block; width: 100%; height: auto; background: var(--water); }
 .map-wrap { position: relative; }
-#chart { cursor: grab; touch-action: pan-x pan-y; user-select: none; -webkit-user-select: none; }
-#chart.dragging { cursor: grabbing; }
+.map-svg { cursor: grab; user-select: none; -webkit-user-select: none; }
+#chart { touch-action: pan-x pan-y; }
+.map-svg.dragging { cursor: grabbing; }
 .map-ctl {
   position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column;
   background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
@@ -209,29 +210,97 @@ td.rt { color: var(--muted); }
 footer.foot { color: var(--muted); font-size: 12px; display: grid; gap: 6px; max-width: 80ch; }
 footer.foot p { margin: 0; }
 
-#chart .area { fill: var(--surface); fill-opacity: 0.55; stroke: var(--water-edge); stroke-width: 1.5; stroke-dasharray: 6 4; }
-#chart .halo { stroke: var(--image-halo); stroke-linecap: round; fill: none; opacity: 0; }
-#chart .panel { fill: var(--surface); fill-opacity: 0.88; }
+.map-svg .area { fill: var(--surface); fill-opacity: 0.55; stroke: var(--water-edge); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.map-svg .halo { stroke: var(--image-halo); stroke-linecap: round; fill: none; opacity: 0; }
+.map-svg .panel { fill: var(--surface); fill-opacity: 0.88; }
 #chart.sat .halo { opacity: 1; }
 #chart.sat .area { fill: none; stroke: var(--on-image); stroke-width: 2; }
 #chart.sat .turn { stroke: var(--on-image); }
 #chart.sat .lbl-on-map { fill: var(--on-image); paint-order: stroke; stroke: var(--image-halo); stroke-width: 3px; }
-#chart .turn { stroke: var(--turn); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
-#chart .pass { stroke: var(--accent); fill: none; stroke-linecap: round; }
-#chart .arrowhead { fill: var(--accent); }
-#chart .brk { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
-#chart .tag { fill: var(--surface); stroke: var(--water-edge); stroke-width: 1.5; }
-#chart .tag.on { fill: var(--accent); stroke: var(--accent); }
-#chart .tagt { font: 700 16px var(--font-data); fill: var(--ink); text-anchor: middle; }
-#chart .tagt.on { fill: var(--on-accent); }
-#chart .start { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
-#chart .end { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
-#chart .ink { fill: var(--ink); }
-#chart .surf { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
-#chart .t { font: 400 14px var(--font-data); fill: var(--ink); }
-#chart .t.b { font-weight: 600; }
-#chart .lg { font: 400 15px var(--font-body); fill: var(--ink); }
-#chart .empty { font: 400 16px var(--font-body); fill: var(--muted); text-anchor: middle; }
+.map-svg .turn { stroke: var(--turn); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+.map-svg .pass { stroke: var(--accent); fill: none; stroke-linecap: round; }
+.map-svg .arrowhead { fill: var(--accent); }
+.map-svg .brk { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.map-svg .tag { fill: var(--surface); stroke: var(--water-edge); stroke-width: 1.5; }
+.map-svg .tag.on { fill: var(--accent); stroke: var(--accent); }
+.map-svg .tagt { font: 700 16px var(--font-data); fill: var(--ink); text-anchor: middle; }
+.map-svg .tagt.on { fill: var(--on-accent); }
+.map-svg .start { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.map-svg .end { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
+.map-svg .ink { fill: var(--ink); }
+.map-svg .surf { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+.map-svg .t { font: 400 14px var(--font-data); fill: var(--ink); }
+.map-svg .t.b { font-weight: 600; }
+.map-svg .lg { font: 400 15px var(--font-body); fill: var(--ink); }
+.map-svg .empty { font: 400 16px var(--font-body); fill: var(--muted); text-anchor: middle; }
+
+/* Corner entry tools */
+.corner-tools { display: flex; flex-wrap: wrap; gap: 8px; }
+button.tool {
+  font: 600 14px/1 var(--font-body); color: var(--ink); background: var(--surface); cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; min-height: 42px;
+}
+button.tool:hover { background: var(--sunken); }
+button.tool[aria-expanded="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.paste-panel { display: grid; gap: 6px; padding: 12px; background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; }
+.paste-panel textarea {
+  width: 100%; min-width: 0; resize: vertical; font: 400 14px/1.45 var(--font-data); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px;
+}
+.paste-panel textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.paste-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Full-screen corner picker */
+html.picking, html.picking body { overflow: hidden; }
+.picker {
+  position: fixed; inset: 0; z-index: 50; background: var(--bg);
+  display: grid; grid-template-rows: auto minmax(0, 1fr);
+}
+.picker-bar {
+  background: var(--surface); border-bottom: 1px solid var(--line); display: grid; gap: 6px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 10px); padding-bottom: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.picker-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.picker-head h2 { font: 700 22px/1.1 var(--font-display); margin: 0; letter-spacing: 0.01em; }
+.picker-head h2:focus { outline: none; }
+.picker-actions { display: flex; gap: 8px; }
+.pick-msg { margin: 0; font-size: 14px; font-weight: 600; }
+.picker-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pick-chips button { min-width: 44px; font: 700 15px/1 var(--font-data); }
+.pick-chips button.set:not([aria-pressed="true"]) { color: var(--ink); background: var(--water); }
+.pick-chips button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
+button.pk-btn {
+  font: 600 14px/1 var(--font-body); color: var(--ink); background: var(--surface); cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; padding: 0 14px; min-height: 40px;
+}
+button.pk-btn:hover:not(:disabled) { background: var(--sunken); }
+button.pk-btn.primary-sm { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+button.pk-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.pick-goto { display: flex; gap: 6px; flex: 1 1 220px; min-width: 0; max-width: 360px; }
+.pick-goto input { flex: 1; min-width: 0; font: 500 14px/1.2 var(--font-data); padding: 9px 10px; }
+.pick-status { font-size: 13px; color: var(--muted); min-height: 1.3em; }
+.pick-status.ok { color: var(--ok); }
+.pick-status.err { color: var(--bad); }
+.picker-map { position: relative; min-height: 0; background: var(--water); }
+#pick-map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: var(--water); touch-action: none; cursor: crosshair; }
+#pick-map.dragging { cursor: grabbing; }
+.picker-map .map-ctl { left: max(10px, env(safe-area-inset-left, 0px)); }
+.map-ctl button.me { color: var(--accent); }
+.pick-credit {
+  position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+  background: var(--surface); border-radius: 6px; padding: 4px 8px; min-height: 0; opacity: 0.9;
+}
+.map-svg .pk-area { fill: var(--accent); fill-opacity: 0.12; stroke: none; }
+.map-svg .pk-edge { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.map-svg .pk-stem { stroke: var(--ink); stroke-width: 2; }
+.map-svg .pk-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.map-svg .pk-me { fill: #2f7de1; stroke: #ffffff; stroke-width: 3; }
+.map-svg .pk-acc { fill: #2f7de1; fill-opacity: 0.15; stroke: #2f7de1; stroke-opacity: 0.5; }
+.map-svg .pk-goto circle { fill: none; stroke: var(--ink); stroke-width: 2; }
+.map-svg .pk-goto line { stroke: var(--ink); stroke-width: 2; }
+#pick-map.sat .pk-stem, #pick-map.sat .pk-goto circle, #pick-map.sat .pk-goto line { stroke: var(--on-image); }
 </style>
 
 <div class="wrap">
@@ -257,7 +326,17 @@ footer.foot p { margin: 0; }
         </div>
 
         <div id="panel-corners" class="corners">
-          <p class="hint" id="corner-hint">Enter corners in order around the area. Paste four lines into corner 1 to fill all four.</p>
+          <p class="hint" id="corner-hint">Enter the corners in order around the area: type them, pick them on a map, or paste all four at once.</p>
+          <div class="corner-tools">
+            <button type="button" class="tool" id="pick-open">Pick on map</button>
+            <button type="button" class="tool" id="paste-open" aria-expanded="false" aria-controls="paste-panel">Paste all 4</button>
+          </div>
+          <div class="paste-panel" id="paste-panel" hidden>
+            <label class="lbl" for="paste-box">Paste all four corners</label>
+            <textarea id="paste-box" rows="4" spellcheck="false" autocomplete="off" placeholder="41.36506, -112.07352&#10;41.36964, -112.07352&#10;41.36964, -112.07858&#10;41.36506, -112.07858"></textarea>
+            <p class="hint">One per line, all on one line, numbered or labelled, or a GPX or KML snippet (from CalTopo, Google Earth and similar).</p>
+            <div class="paste-row"><button type="button" class="link" id="paste-clip" hidden>Paste from clipboard</button><div class="status" id="paste-status" role="status" aria-live="polite"></div></div>
+          </div>
           <dl class="fmt" aria-label="Accepted coordinate formats">
             <dt>Decimal</dt><dd>41.36506, -112.07352</dd>
             <dt>Deg + min</dt><dd>N41 21.904 W112 04.411</dd>
@@ -343,7 +422,7 @@ footer.foot p { margin: 0; }
     <div class="col side">
       <div class="preview">
         <div class="map-wrap">
-          <svg id="chart" viewBox="0 0 640 460" role="img" aria-label="Search grid preview"></svg>
+          <svg id="chart" class="map-svg" viewBox="0 0 640 460" role="img" aria-label="Search grid preview"></svg>
           <div class="map-ctl" id="map-ctl" role="group" aria-label="Map zoom" hidden>
             <button type="button" id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
             <button type="button" id="zoom-out" aria-label="Zoom out" title="Zoom out">&minus;</button>
@@ -392,6 +471,43 @@ footer.foot p { margin: 0; }
   </footer>
 </div>
 
+
+<div class="picker" id="picker" hidden role="dialog" aria-modal="true" aria-labelledby="picker-title">
+  <div class="picker-bar">
+    <div class="picker-head">
+      <h2 id="picker-title" tabindex="-1">Pick corners</h2>
+      <div class="picker-actions">
+        <button type="button" class="pk-btn" id="pick-cancel">Cancel</button>
+        <button type="button" class="pk-btn primary-sm" id="pick-done" disabled>Use corners</button>
+      </div>
+    </div>
+    <p class="pick-msg" id="pick-msg" aria-live="polite"></p>
+    <div class="picker-tools">
+      <div class="seg pick-chips" role="group" aria-label="Corner to place">
+        <button type="button" data-pc="0">1</button><button type="button" data-pc="1">2</button><button type="button" data-pc="2">3</button><button type="button" data-pc="3">4</button>
+      </div>
+      <button type="button" class="pk-btn" id="pick-undo">Undo</button>
+      <button type="button" class="pk-btn" id="pick-clear">Clear</button>
+      <form class="pick-goto" id="pick-goto">
+        <label class="sr" for="pick-goto-in">Go to position</label>
+        <input type="text" id="pick-goto-in" placeholder="Go to lat, lon" autocomplete="off" spellcheck="false">
+        <button type="submit" class="pk-btn">Go</button>
+      </form>
+    </div>
+    <div class="pick-status" id="pick-status" role="status" aria-live="polite"></div>
+  </div>
+  <div class="picker-map">
+    <svg id="pick-map" class="map-svg" role="img" aria-label="Map for picking corners"></svg>
+    <div class="map-ctl" role="group" aria-label="Map zoom">
+      <button type="button" id="pick-zin" aria-label="Zoom in" title="Zoom in">+</button>
+      <button type="button" id="pick-zout" aria-label="Zoom out" title="Zoom out">&minus;</button>
+      <button type="button" id="pick-fit" class="fit" aria-label="Fit the corners" title="Fit the corners">Fit</button>
+      <button type="button" id="pick-me" class="me" aria-label="Go to my location" title="Go to my location"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4" stroke="currentColor" stroke-width="2"/></svg></button>
+    </div>
+    <div class="credit pick-credit" id="pick-credit"></div>
+  </div>
+</div>
+
 <script>
 /*__GRID_CORE__*/
 </script>
@@ -423,15 +539,6 @@ footer.foot p { margin: 0; }
   cornerInputs.forEach((el, i) => {
     el.value = state.corners[i] || '';
     el.addEventListener('input', () => { state.corners[i] = el.value; state.example = false; update(); });
-  });
-  cornerInputs[0].addEventListener('paste', e => {
-    const text = (e.clipboardData || window.clipboardData).getData('text');
-    const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
-    if (lines.length >= 4) {
-      e.preventDefault();
-      lines.slice(0, 4).forEach((l, i) => { cornerInputs[i].value = l; state.corners[i] = l; });
-      state.example = false; update();
-    }
   });
 
   const bindNum = (id, key, conv) => {
@@ -477,7 +584,10 @@ footer.foot p { margin: 0; }
   $('sat-toggle').addEventListener('click', () => { state.imagery = state.imagery === false; update(); });
   // Redraw when the preview changes size (imagery zoom depends on it) or the connection comes back.
   let resizeTimer = null;
-  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(update, 300); });
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { update(); if (pickOpen()) pick.map.render(true); }, 300);
+  });
   window.addEventListener('online', () => update());
 
   // ---------- Helpers ----------
@@ -606,16 +716,13 @@ footer.foot p { margin: 0; }
     $('wp-body').innerHTML = '';
     $('wp-summary').textContent = 'Waypoint list';
     $('map-link').hidden = true;
-    drawId++;
-    $('chart').classList.remove('sat');
-    $('chart').innerHTML = `<text x="320" y="235" class="empty">${esc(msg)}</text>`;
-    rendered = null;
+    preview.clear(msg);
+    previewKey = '';
     $('map-ctl').hidden = true;
-    $('sat-credit').textContent = '';
     setSaveEnabled(false);
   }
 
-  // ---------- Chart ----------
+  // ---------- Maps ----------
   // USGS National Map orthoimagery: public domain, no key, US coverage. Cached to zoom 16.
   const IMAGERY = {
     url: (z, y, x) => `https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/${z}/${y}/${x}`,
@@ -625,88 +732,348 @@ footer.foot p { margin: 0; }
   };
   // The claude.ai preview frame blocks images from other sites; the deployed page does not.
   const imageryBlocked = () => framed && hasClaude;
-  let drawId = 0;
-
-  // Map view. Drawing coordinates are the SVG viewBox (640 x 460); the map itself uses the
-  // top 440, the bottom strip holds the scale bar and legend.
-  const W = 640, H = 460, MAP_H = H - 20;
-  let view = null;                       // null = fit the search area; else { cx, cy, k } in Web Mercator units
-  let viewKey = '';                      // which area the current view belongs to
-  let rendered = null;                   // { ox, oy, k, fitK, mPerK } of the current drawing
-  let live = { s: 1, tx: 0, ty: 0 };     // gesture transform applied on top of the drawing
 
   function mercator(p) {
     const r = p.lat * Math.PI / 180;
     return { x: (p.lon + 180) / 360 * 256, y: (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 256 };
   }
+  function unmercator(x, y) {
+    return { lat: Math.atan(Math.sinh(Math.PI * (1 - 2 * y / 256))) * 180 / Math.PI, lon: x / 256 * 360 - 180 };
+  }
+  // Metres per Web Mercator unit at a latitude; metres per drawing pixel = this / k.
+  const metresPerUnit = lat => 2 * Math.PI * 6378137 * Math.cos(lat * Math.PI / 180) / 256;
 
+  function scaleBarSvg(ctx, id) {
+    const unit = unitM(), f = n => n.toFixed(1);
+    const targetUnits = 120 * ctx.mPerPx / unit;
+    const mag = Math.pow(10, Math.floor(Math.log10(targetUnits)));
+    const nice = [1, 2, 5, 10].map(m => m * mag).reduce((best, v) => Math.abs(v - targetUnits) < Math.abs(best - targetUnits) ? v : best, mag);
+    const barPx = nice * unit / ctx.mPerPx;
+    const label = nice >= 1 ? nice.toLocaleString() : String(+nice.toPrecision(2));
+    return `<g${id ? ` id="${id}"` : ''} transform="translate(18,${ctx.H - 22})"><rect class="panel" x="-8" y="-24" width="${f(barPx + 16)}" height="38" rx="6"/>` +
+      `<rect class="ink" width="${f(barPx)}" height="5"/><rect class="surf" width="${f(barPx / 2)}" height="5"/>` +
+      `<text class="t" y="-8">0</text><text class="t" x="${f(barPx)}" y="-8" text-anchor="end">${label} ${state.units}</text></g>`;
+  }
+
+  // A zoomable, pannable map drawn in SVG over satellite tiles. Used by the grid preview
+  // and the corner picker. Gestures move the drawing with a transform right away; when they
+  // settle, it is redrawn at the new scale so lines stay crisp and sharper imagery loads.
+  //
+  // cfg: size() -> {W, H, mapH}; pad(toVb) -> {l, r, t, b}; zoomLimits(rendered) -> [kMin, kMax];
+  //      draw(ctx) -> {defs, vp, fixed}; touch: 'twoFinger' (one finger scrolls the page) or
+  //      'pointer' (one finger pans); dblclickZoom; maxTiles; maxFitMPerPx; controls {zin, zout, fit};
+  //      hint (element); credit(msg); imagery() -> bool; onTap(latlon); after(map)
+  function createMap(svg, cfg) {
+    const m = { view: null, bounds: null, rendered: null, live: { s: 1, tx: 0, ty: 0 }, drawId: 0 };
+    let commitTimer = null, pinch = null, drag = null, oneTouch = null, hintTimer = null;
+    const ptrs = new Map();
+
+    m.setBounds = (latlons, keepView) => {
+      const q = latlons.map(mercator);
+      m.bounds = q.length ? {
+        minX: Math.min(...q.map(p => p.x)), maxX: Math.max(...q.map(p => p.x)),
+        minY: Math.min(...q.map(p => p.y)), maxY: Math.max(...q.map(p => p.y)),
+        lat: latlons.reduce((s, p) => s + p.lat, 0) / latlons.length
+      } : null;
+      if (!keepView) m.view = null;
+    };
+
+    function makeCtx(r) {
+      const S = p => { const q = mercator(p); return [r.ox + q.x * r.k, r.oy + q.y * r.k]; };
+      return { S, k: r.k, ox: r.ox, oy: r.oy, W: r.W, H: r.H, mapH: r.mapH, fitK: r.fitK, mPerPx: r.mPerK / r.k, toVb: r.toVb, view: m.view };
+    }
+
+    m.render = keepTiles => {
+      if (!svg.getClientRects().length) return;          // not on screen (e.g. picker closed)
+      const id = ++m.drawId;
+      const prevLive = m.live;
+      m.live = { s: 1, tx: 0, ty: 0 };
+      const { W, H, mapH } = cfg.size();
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      const rect = svg.getBoundingClientRect();
+      const toVb = W / (rect.width || W);
+      const pad = cfg.pad(toVb);
+      const b = m.bounds || { minX: 0, maxX: 256, minY: 40, maxY: 216, lat: 0 };
+      const availW = Math.max(1, W - pad.l - pad.r), availH = Math.max(1, mapH - pad.t - pad.b);
+      let fitK = Math.min(availW / Math.max(1e-9, b.maxX - b.minX), availH / Math.max(1e-9, b.maxY - b.minY));
+      if (cfg.maxFitMPerPx) fitK = Math.min(fitK, metresPerUnit(b.lat) / cfg.maxFitMPerPx);
+      let k, ox, oy;
+      if (m.view) { k = m.view.k; ox = W / 2 - m.view.cx * k; oy = mapH / 2 - m.view.cy * k; }
+      else {
+        k = fitK;
+        ox = pad.l + availW / 2 - (b.minX + b.maxX) / 2 * k;
+        oy = pad.t + availH / 2 - (b.minY + b.maxY) / 2 * k;
+      }
+      const mPerK = metresPerUnit(unmercator(0, Math.max(0, Math.min(256, (mapH / 2 - oy) / k))).lat);
+      m.rendered = { ox, oy, k, fitK, mPerK, W, H, mapH, toVb };
+      const f = n => n.toFixed(1);
+
+      // Satellite tiles (Web Mercator, 256 px). Each tile sits in its own <svg> so a
+      // missing tile can fall back to a zoomed-in crop of its parent.
+      const wantSat = cfg.imagery();
+      let tiles = '', tileCount = 0;
+      const zWant = Math.round(Math.log2(k / toVb * Math.min(3, window.devicePixelRatio || 1)));
+      if (wantSat && navigator.onLine !== false && isFinite(zWant)) {
+        let z = Math.max(1, Math.min(IMAGERY.maxZoom, zWant));
+        let n, x0, x1, y0, y1;
+        for (;;) {
+          n = Math.pow(2, z);
+          x0 = Math.floor(-ox / k * n / 256); x1 = Math.floor((W - ox) / k * n / 256);
+          y0 = Math.max(0, Math.floor(-oy / k * n / 256)); y1 = Math.min(n - 1, Math.floor((H - oy) / k * n / 256));
+          if ((x1 - x0 + 1) * (y1 - y0 + 1) <= (cfg.maxTiles || 48) || z <= 1) break;
+          z--;
+        }
+        const ts = 256 / n * k;
+        tiles += '<g class="sat-tiles">';
+        for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+          const wx = ((tx % n) + n) % n;
+          tiles += `<svg x="${f(ox + tx * ts)}" y="${f(oy + ty * ts)}" width="${(ts + 0.6).toFixed(2)}" height="${(ts + 0.6).toFixed(2)}" viewBox="0 0 256 256" preserveAspectRatio="none" data-z="${z}" data-x="${wx}" data-y="${ty}">` +
+            `<image width="256" height="256" preserveAspectRatio="none" href="${IMAGERY.url(z, ty, wx)}"/></svg>`;
+          tileCount++;
+        }
+        tiles += '</g>';
+      }
+
+      const out = cfg.draw(makeCtx(m.rendered));
+      // Keep the previous imagery (moved to match the new view) until the new tiles load.
+      const oldTiles = keepTiles ? svg.querySelector('.vp > .sat-tiles') : null;
+      const hadSat = svg.classList.contains('sat');
+      svg.innerHTML = (out.defs || '') + '<g class="vp">' + tiles + `<g class="ov">${out.vp || ''}</g></g><g class="fx">${out.fixed || ''}</g>`;
+      svg.classList.toggle('sat', !!(oldTiles && hadSat && wantSat));
+      let backdrop = null;
+      if (oldTiles && wantSat) {
+        backdrop = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        backdrop.setAttribute('class', 'sat-old');
+        backdrop.setAttribute('transform', `matrix(${prevLive.s} 0 0 ${prevLive.s} ${prevLive.tx} ${prevLive.ty})`);
+        backdrop.appendChild(oldTiles);
+        const vp = svg.querySelector('.vp');
+        vp.insertBefore(backdrop, vp.firstChild);
+        setTimeout(() => backdrop.remove(), 10000);
+      }
+      if (cfg.after) cfg.after(m);
+
+      if (!wantSat) { cfg.credit(imageryBlocked() ? "Satellite imagery isn't available in this preview." : ''); return; }
+      if (!tileCount) { cfg.credit('No satellite imagery: no internet connection.'); return; }
+      if (!backdrop) cfg.credit('Loading satellite imagery…');
+      let settled = 0, shown = 0;
+      const done = () => {
+        if (id !== m.drawId) return;
+        if (shown) cfg.credit(IMAGERY.credit);
+        if (settled === tileCount) {
+          if (backdrop) backdrop.remove();
+          if (!shown) { svg.classList.remove('sat'); cfg.credit('No satellite imagery: offline or not available here.'); }
+        }
+      };
+      svg.querySelectorAll('.vp > .sat-tiles svg').forEach(box => {
+        const img = box.querySelector('image');
+        let depth = 0;
+        img.addEventListener('load', () => {
+          if (id !== m.drawId) return;
+          settled++; shown++;
+          svg.classList.add('sat');
+          done();
+        });
+        img.addEventListener('error', () => {
+          if (id !== m.drawId) return;
+          const z = +box.dataset.z, x = +box.dataset.x, y = +box.dataset.y;
+          depth++;
+          if (depth > IMAGERY.fallbackLevels || z - depth < 0) { box.remove(); settled++; done(); return; }
+          const mm = Math.pow(2, depth), size = 256 / mm;
+          box.setAttribute('viewBox', `${(x % mm) * size} ${(y % mm) * size} ${size} ${size}`);
+          img.setAttribute('href', IMAGERY.url(z - depth, y >> depth, x >> depth));
+        });
+      });
+    };
+
+    // Redraw only the markers and labels (no tile reload); the current gesture transform stays.
+    m.redrawOverlay = () => {
+      if (!m.rendered) return;
+      const out = cfg.draw(makeCtx(m.rendered));
+      const ov = svg.querySelector('.ov'), fx = svg.querySelector('.fx');
+      if (ov) ov.innerHTML = out.vp || '';
+      if (fx) fx.innerHTML = out.fixed || '';
+    };
+
+    m.clear = msg => {
+      m.drawId++;
+      m.rendered = null;
+      svg.classList.remove('sat');
+      const { W, H } = cfg.size();
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.innerHTML = `<text x="${W / 2}" y="${H / 2}" class="empty">${esc(msg)}</text>`;
+      cfg.credit('');
+    };
+
+    m.svgPoint = (clientX, clientY) => {
+      const r = svg.getBoundingClientRect(), { W, H } = m.rendered || cfg.size();
+      return [(clientX - r.left) * W / r.width, (clientY - r.top) * H / r.height];
+    };
+    m.toLatLon = p => {
+      const r = m.rendered, l = m.live, k = r.k * l.s;
+      return unmercator((p[0] - (r.ox * l.s + l.tx)) / k, (p[1] - (r.oy * l.s + l.ty)) / k);
+    };
+    m.centerOn = (ll, mPerPx) => {
+      const q = mercator(ll);
+      clearTimeout(commitTimer);
+      m.view = { cx: q.x, cy: q.y, k: mPerPx ? metresPerUnit(ll.lat) / mPerPx : (m.rendered ? m.rendered.k * m.live.s : 1) };
+      m.render(true);
+    };
+    m.fit = () => { clearTimeout(commitTimer); m.view = null; m.render(true); };
+
+    function applyLive() {
+      const vp = svg.querySelector('.vp');
+      if (vp) vp.setAttribute('transform', `matrix(${m.live.s} 0 0 ${m.live.s} ${m.live.tx} ${m.live.ty})`);
+    }
+    function setLive(s, tx, ty) { m.live = { s, tx, ty }; applyLive(); }
+    function scaleBounds() {
+      const [kMin, kMax] = cfg.zoomLimits(m.rendered);
+      return [kMin / m.rendered.k, kMax / m.rendered.k];
+    }
+    function zoomAt(p, factor, delay) {
+      if (!m.rendered) return;
+      const [lo, hi] = scaleBounds();
+      const s = Math.max(lo, Math.min(hi, m.live.s * factor));
+      const fct = s / m.live.s;
+      setLive(s, p[0] - fct * (p[0] - m.live.tx), p[1] - fct * (p[1] - m.live.ty));
+      scheduleCommit(delay);
+    }
+    m.zoomAt = zoomAt;
+    function scheduleCommit(delay) {
+      clearTimeout(commitTimer);
+      commitTimer = setTimeout(commit, delay === undefined ? 250 : delay);
+    }
+    function commit() {
+      if (!m.rendered || pinch || drag) return;
+      const l = m.live, r = m.rendered;
+      if (l.s === 1 && l.tx === 0 && l.ty === 0) return;
+      const k = r.k * l.s, ox = r.ox * l.s + l.tx, oy = r.oy * l.s + l.ty;
+      m.view = { k, cx: (r.W / 2 - ox) / k, cy: (r.mapH / 2 - oy) / k };
+      m.render(true);
+    }
+    const centre = () => { const r = m.rendered; return [r.W / 2, r.mapH / 2]; };
+    if (cfg.controls) {
+      cfg.controls.zin.addEventListener('click', () => m.rendered && zoomAt(centre(), 2, 120));
+      cfg.controls.zout.addEventListener('click', () => m.rendered && zoomAt(centre(), 0.5, 120));
+      cfg.controls.fit.addEventListener('click', () => m.rendered && m.fit());
+    }
+
+    // Mouse wheel zooms at the pointer; double-click zooms in where enabled.
+    svg.addEventListener('wheel', e => {
+      if (!m.rendered) return;
+      e.preventDefault();
+      const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+      zoomAt(m.svgPoint(e.clientX, e.clientY), Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015)));
+    }, { passive: false });
+    if (cfg.dblclickZoom) svg.addEventListener('dblclick', e => { if (m.rendered) { e.preventDefault(); zoomAt(m.svgPoint(e.clientX, e.clientY), 2, 120); } });
+
+    // Pointer gestures: drag pans, two pointers pinch, a tap without movement calls onTap.
+    // In 'twoFinger' mode touch pointers are left to the touch handlers below.
+    function pinchStart() {
+      const [a, b] = [...ptrs.values()];
+      return { d0: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, m0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], s0: m.live.s, tx0: m.live.tx, ty0: m.live.ty };
+    }
+    function pinchMove(a, b, g) {
+      const d = Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      const [lo, hi] = scaleBounds();
+      const s = Math.max(lo, Math.min(hi, g.s0 * d / g.d0));
+      const fct = s / g.s0;
+      setLive(s, mid[0] - fct * (g.m0[0] - g.tx0), mid[1] - fct * (g.m0[1] - g.ty0));
+    }
+    svg.addEventListener('pointerdown', e => {
+      if (!m.rendered) return;
+      if (e.pointerType === 'touch' && cfg.touch !== 'pointer') return;
+      if (e.pointerType !== 'touch' && e.button !== 0) return;
+      try { svg.setPointerCapture(e.pointerId); } catch (_) { /* ignore */ }
+      const p = m.svgPoint(e.clientX, e.clientY);
+      ptrs.set(e.pointerId, p);
+      clearTimeout(commitTimer);
+      if (ptrs.size === 1) drag = { last: p, cx: e.clientX, cy: e.clientY, moved: false, multi: false };
+      else if (ptrs.size === 2) { pinch = pinchStart(); if (drag) drag.multi = true; }
+    });
+    svg.addEventListener('pointermove', e => {
+      if (!ptrs.has(e.pointerId)) return;
+      const p = m.svgPoint(e.clientX, e.clientY);
+      ptrs.set(e.pointerId, p);
+      if (pinch && ptrs.size >= 2) { const [a, b] = [...ptrs.values()]; pinchMove(a, b, pinch); return; }
+      if (!drag) return;
+      if (!drag.moved) {
+        if (Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy) < (e.pointerType === 'touch' ? 8 : 4)) return;
+        drag.moved = true;
+        svg.classList.add('dragging');
+      }
+      setLive(m.live.s, m.live.tx + p[0] - drag.last[0], m.live.ty + p[1] - drag.last[1]);
+      drag.last = p;
+    });
+    const pointerEnd = e => {
+      if (!ptrs.has(e.pointerId)) return;
+      ptrs.delete(e.pointerId);
+      if (pinch && ptrs.size < 2) {
+        pinch = null;
+        if (ptrs.size === 1) { const p = [...ptrs.values()][0]; drag = { last: p, cx: 0, cy: 0, moved: true, multi: true }; }
+      }
+      if (ptrs.size === 0) {
+        const tap = drag && !drag.moved && !drag.multi && e.type === 'pointerup';
+        drag = null;
+        svg.classList.remove('dragging');
+        if (tap && cfg.onTap) cfg.onTap(m.toLatLon(m.svgPoint(e.clientX, e.clientY)));
+        scheduleCommit(0);
+      }
+    };
+    svg.addEventListener('pointerup', pointerEnd);
+    svg.addEventListener('pointercancel', pointerEnd);
+
+    // 'twoFinger' touch: two fingers pan and zoom; one finger keeps scrolling the page.
+    if (cfg.touch === 'twoFinger') {
+      const showHint = () => {
+        if (!cfg.hint) return;
+        cfg.hint.hidden = false;
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(() => { cfg.hint.hidden = true; }, 1600);
+      };
+      const touchPts = t => [m.svgPoint(t[0].clientX, t[0].clientY), m.svgPoint(t[1].clientX, t[1].clientY)];
+      svg.addEventListener('touchstart', e => {
+        if (!m.rendered) return;
+        if (e.touches.length >= 2) {
+          e.preventDefault();
+          clearTimeout(commitTimer);
+          if (cfg.hint) cfg.hint.hidden = true;
+          const [a, b] = touchPts(e.touches);
+          pinch = { d0: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, m0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], s0: m.live.s, tx0: m.live.tx, ty0: m.live.ty };
+          oneTouch = null;
+        } else {
+          oneTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY, hinted: false };
+        }
+      }, { passive: false });
+      svg.addEventListener('touchmove', e => {
+        if (pinch && e.touches.length >= 2) {
+          e.preventDefault();
+          const [a, b] = touchPts(e.touches);
+          pinchMove(a, b, pinch);
+        } else if (oneTouch && e.touches.length === 1 && !oneTouch.hinted) {
+          const t = e.touches[0];
+          if (Math.hypot(t.clientX - oneTouch.x, t.clientY - oneTouch.y) > 12) { oneTouch.hinted = true; showHint(); }
+        }
+      }, { passive: false });
+      const endTouch = e => {
+        if (pinch && e.touches.length < 2) { pinch = null; scheduleCommit(0); }
+        if (!e.touches.length) oneTouch = null;
+      };
+      svg.addEventListener('touchend', endTouch);
+      svg.addEventListener('touchcancel', endTouch);
+    }
+    return m;
+  }
+
+  // ---------- Grid preview ----------
+  let previewData = null, previewKey = '';
   function setCredit(msg) { $('sat-credit').textContent = msg; }
 
-  // keepTiles: redraw after zoom/pan, keeping the old imagery underneath until new tiles arrive.
-  function drawChart(base, ordered, pts, hwr, keepTiles) {
-    const id = ++drawId;
-    const chart = $('chart');
-    const prevLive = live;
-    live = { s: 1, tx: 0, ty: 0 };
-
-    // Fit: leave room for the zoom buttons (top left) and north arrow (top right).
-    const rect = chart.getBoundingClientRect();
-    const toVb = W / (rect.width || W);
-    const ctl = $('map-ctl');
-    const padL = Math.max(46, ((ctl && ctl.offsetWidth) || 0) * toVb + 34);
-    const padR = 58, padT = 46, padB = 52;
-    const all = base.map(mercator);
-    const minX = Math.min(...all.map(p => p.x)), maxX = Math.max(...all.map(p => p.x));
-    const minY = Math.min(...all.map(p => p.y)), maxY = Math.max(...all.map(p => p.y));
-    const fitK = Math.min((W - padL - padR) / Math.max(1e-9, maxX - minX), (MAP_H - padT - padB) / Math.max(1e-9, maxY - minY));
-    const key = base.map(c => c.lat.toFixed(7) + ',' + c.lon.toFixed(7)).join(';');
-    if (key !== viewKey) { view = null; viewKey = key; }
-    let k, ox, oy;
-    if (view) { k = view.k; ox = W / 2 - view.cx * k; oy = MAP_H / 2 - view.cy * k; }
-    else {
-      k = fitK;
-      ox = padL + (W - padL - padR) / 2 - (minX + maxX) / 2 * k;
-      oy = padT + (MAP_H - padT - padB) / 2 - (minY + maxY) / 2 * k;
-    }
-    const lat0 = base.reduce((s, c) => s + c.lat, 0) / 4;
-    const mPerK = 2 * Math.PI * 6378137 * Math.cos(lat0 * Math.PI / 180) / 256;   // metres per drawing px = mPerK / k
-    rendered = { ox, oy, k, fitK, mPerK };
-    const S = p => { const m = mercator(p); return [ox + m.x * k, oy + m.y * k]; };
+  function drawPreview(ctx) {
+    const { base, pts, hwr } = previewData;
+    const { S, W, H } = ctx;
     const f = n => n.toFixed(1);
-    const mPerUnit = mPerK / k;
-
-    let svg = `<defs><marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path class="arrowhead" d="M0,1 L9,5 L0,9 z"/></marker></defs>`;
-    svg += '<g id="vp">';
-
-    // Satellite tiles (Web Mercator, 256 px). Each tile sits in its own <svg> so a
-    // missing tile can fall back to a zoomed-in crop of its parent.
-    const wantSat = state.imagery !== false && !imageryBlocked();
-    let tileCount = 0;
-    if (wantSat && navigator.onLine !== false) {
-      const cssPerUnit = 1 / toVb;
-      const dpr = Math.min(3, window.devicePixelRatio || 1);
-      let z = Math.max(1, Math.min(IMAGERY.maxZoom, Math.round(Math.log2(k * cssPerUnit * dpr))));
-      let n, x0, x1, y0, y1;
-      for (;;) {
-        n = Math.pow(2, z);
-        x0 = Math.floor(-ox / k * n / 256); x1 = Math.floor((W - ox) / k * n / 256);
-        y0 = Math.max(0, Math.floor(-oy / k * n / 256)); y1 = Math.min(n - 1, Math.floor((H - oy) / k * n / 256));
-        if ((x1 - x0 + 1) * (y1 - y0 + 1) <= 48 || z <= 1) break;
-        z--;
-      }
-      const ts = 256 / n * k;
-      svg += '<g class="sat-tiles">';
-      for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-        const wx = ((tx % n) + n) % n;
-        svg += `<svg x="${f(ox + tx * ts)}" y="${f(oy + ty * ts)}" width="${(ts + 0.6).toFixed(2)}" height="${(ts + 0.6).toFixed(2)}" viewBox="0 0 256 256" preserveAspectRatio="none" data-z="${z}" data-x="${wx}" data-y="${ty}">` +
-          `<image width="256" height="256" preserveAspectRatio="none" href="${IMAGERY.url(z, ty, wx)}"/></svg>`;
-        tileCount++;
-      }
-      svg += '</g>';
-    }
-
-    // Area outline
-    svg += `<polygon class="area" points="${base.map(c => S(c).map(f).join(',')).join(' ')}"/>`;
+    const defs = `<defs><marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path class="arrowhead" d="M0,1 L9,5 L0,9 z"/></marker></defs>`;
+    let vp = `<polygon class="area" points="${base.map(c => S(c).map(f).join(',')).join(' ')}"/>`;
 
     // Turns, then passes on top, each over a halo that keeps them readable on imagery
     const thick = pts.length > 80 ? 1.4 : 2.4;
@@ -716,22 +1083,22 @@ footer.foot p { margin: 0; }
       halos += `<line class="halo" stroke-width="4" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
       turns += `<line class="turn" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
     }
-    const arrows = pts.length <= 120 || k > fitK * 2.5;
+    const arrows = pts.length <= 120 || ctx.k > ctx.fitK * 2.5;
     for (let i = 0; i < pts.length; i += 2) {
       const a = S(pts[i]), b = S(pts[i + 1]);
       const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
       halos += `<line class="halo" stroke-width="${thick + 3}" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
       passes += `<path class="pass" stroke-width="${thick}" d="M${f(a[0])},${f(a[1])} L${f(mx)},${f(my)} L${f(b[0])},${f(b[1])}"${arrows ? ' marker-mid="url(#arr)"' : ''}/>`;
     }
-    svg += halos + turns + passes;
+    vp += halos + turns + passes;
 
     // Route split points
     let acc = 0;
     hwr.routes.slice(0, -1).forEach((r, j) => {
       acc += r.points - (j === 0 ? 0 : 1);
       const p = S(pts[acc - 1]);
-      svg += `<circle class="brk" cx="${f(p[0])}" cy="${f(p[1])}" r="5"/>`;
-      svg += `<text class="t lbl-on-map" x="${f(p[0] + 8)}" y="${f(p[1] - 8)}">R${j + 2}</text>`;
+      vp += `<circle class="brk" cx="${f(p[0])}" cy="${f(p[1])}" r="5"/>`;
+      vp += `<text class="t lbl-on-map" x="${f(p[0] + 8)}" y="${f(p[1] - 8)}">R${j + 2}</text>`;
     });
 
     // Corner tags, pushed outward from the middle of the area
@@ -741,222 +1108,262 @@ footer.foot p { margin: 0; }
       const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1;
       const lx = x + dx / d * 24, ly = y + dy / d * 24;
       const on = i === state.start ? ' on' : '';
-      svg += `<circle class="tag${on}" cx="${f(lx)}" cy="${f(ly)}" r="14"/>`;
-      svg += `<text class="tagt${on}" x="${f(lx)}" y="${f(ly + 5.5)}">${i + 1}</text>`;
+      vp += `<circle class="tag${on}" cx="${f(lx)}" cy="${f(ly)}" r="14"/>`;
+      vp += `<text class="tagt${on}" x="${f(lx)}" y="${f(ly + 5.5)}">${i + 1}</text>`;
     });
 
     // Start and end markers
     const s0 = S(pts[0]), e0 = S(pts[pts.length - 1]);
-    svg += `<circle class="start" cx="${f(s0[0])}" cy="${f(s0[1])}" r="6"/>`;
-    svg += `<rect class="end" x="${f(e0[0] - 5)}" y="${f(e0[1] - 5)}" width="10" height="10"/>`;
-    svg += '</g>';
+    vp += `<circle class="start" cx="${f(s0[0])}" cy="${f(s0[1])}" r="6"/>`;
+    vp += `<rect class="end" x="${f(e0[0] - 5)}" y="${f(e0[1] - 5)}" width="10" height="10"/>`;
 
-    // North arrow
-    svg += `<g transform="translate(${W - 32},34)"><rect class="panel" x="-20" y="-26" width="40" height="60" rx="6"/><path class="ink" d="M0,-18 L8,9 L0,3 L-8,9 z"/><text class="t b" y="26" text-anchor="middle">N</text></g>`;
-
-    // Scale bar (round length in display units)
-    const unit = unitM();
-    const targetUnits = 120 * mPerUnit / unit;
-    const mag = Math.pow(10, Math.floor(Math.log10(targetUnits)));
-    const nice = [1, 2, 5, 10].map(m => m * mag).reduce((best, v) => Math.abs(v - targetUnits) < Math.abs(best - targetUnits) ? v : best, mag);
-    const barPx = nice * unit / mPerUnit;
-    svg += `<g id="scalebar" transform="translate(18,${H - 22})"><rect class="panel" x="-8" y="-24" width="${f(barPx + 16)}" height="38" rx="6"/>` +
-      `<rect class="ink" width="${f(barPx)}" height="5"/><rect class="surf" width="${f(barPx / 2)}" height="5"/>` +
-      `<text class="t" y="-8">0</text><text class="t" x="${f(barPx)}" y="-8" text-anchor="end">${nice.toLocaleString()} ${state.units}</text></g>`;
-
-    // Start / end legend
+    // North arrow, scale bar, legend
+    let fixed = `<g transform="translate(${W - 32},34)"><rect class="panel" x="-20" y="-26" width="40" height="60" rx="6"/><path class="ink" d="M0,-18 L8,9 L0,3 L-8,9 z"/><text class="t b" y="26" text-anchor="middle">N</text></g>`;
+    fixed += scaleBarSvg(ctx, 'scalebar');
     const multi = hwr.routes.length > 1;
     const lgW = multi ? 252 : 128;
-    const lgX = W - lgW - 10;
-    svg += `<g transform="translate(${lgX},${H - 20})"><rect class="panel" x="-12" y="-19" width="${lgW}" height="30" rx="6"/>` +
+    fixed += `<g transform="translate(${W - lgW - 10},${H - 20})"><rect class="panel" x="-12" y="-19" width="${lgW}" height="30" rx="6"/>` +
       `<circle class="start" cx="0" cy="-3" r="6"/><text class="lg" x="11" y="2">Start</text>` +
       `<rect class="end" x="64" y="-9" width="12" height="12"/><text class="lg" x="82" y="2">End</text>` +
       (multi ? `<circle class="brk" cx="132" cy="-3" r="6"/><text class="lg" x="143" y="2">Route break</text>` : '') + `</g>`;
+    return { defs, vp, fixed };
+  }
 
-    // Keep the previous imagery (moved to match the new view) until the new tiles load.
-    const oldTiles = keepTiles ? chart.querySelector('#vp .sat-tiles') : null;
-    const hadSat = chart.classList.contains('sat');
-    chart.innerHTML = svg;
-    chart.classList.toggle('sat', !!(oldTiles && hadSat && wantSat));
-    let backdrop = null;
-    if (oldTiles && wantSat) {
-      backdrop = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      backdrop.setAttribute('class', 'sat-old');
-      backdrop.setAttribute('transform', `matrix(${prevLive.s} 0 0 ${prevLive.s} ${prevLive.tx} ${prevLive.ty})`);
-      backdrop.appendChild(oldTiles);
-      const vp = chart.querySelector('#vp');
-      vp.insertBefore(backdrop, vp.firstChild);
-      setTimeout(() => backdrop.remove(), 10000);
+  const preview = createMap($('chart'), {
+    size: () => ({ W: 640, H: 460, mapH: 440 }),
+    // Leave room for the zoom buttons (top left), north arrow (top right) and legend (bottom).
+    pad: toVb => ({ l: Math.max(46, ($('map-ctl').offsetWidth || 0) * toVb + 34), r: 58, t: 46, b: 52 }),
+    // Out to 1/8 of the fitted size, in to about 0.25 m per drawing pixel.
+    zoomLimits: r => [r.fitK / 8, Math.max(r.fitK * 2, r.mPerK / 0.25)],
+    touch: 'twoFinger', dblclickZoom: true, maxTiles: 48,
+    controls: { zin: $('zoom-in'), zout: $('zoom-out'), fit: $('zoom-fit') },
+    hint: $('map-hint'),
+    credit: setCredit,
+    imagery: () => state.imagery !== false && !imageryBlocked(),
+    draw: drawPreview,
+    after: map => {
+      $('chart').setAttribute('aria-label', `Search grid preview: ${last.passes} passes, starting at corner ${state.start + 1}`);
+      $('map-ctl').hidden = false;
+      $('zoom-fit').disabled = !map.view;
+      $('sat-toggle').hidden = imageryBlocked();
+      $('sat-toggle').setAttribute('aria-pressed', String(state.imagery !== false));
+      $('sat-toggle').textContent = state.imagery !== false ? 'Satellite: on' : 'Satellite: off';
     }
-    chart.setAttribute('aria-label', `Search grid preview: ${last.passes} passes, starting at corner ${state.start + 1}`);
-    $('map-ctl').hidden = false;
-    $('zoom-fit').disabled = !view;
+  });
 
-    // Imagery status and per-tile fallback
-    $('sat-toggle').hidden = imageryBlocked();
-    $('sat-toggle').setAttribute('aria-pressed', String(state.imagery !== false));
-    $('sat-toggle').textContent = state.imagery !== false ? 'Satellite: on' : 'Satellite: off';
-    if (imageryBlocked()) { setCredit("Satellite imagery isn't available in this preview."); return; }
-    if (!wantSat) { setCredit(''); return; }
-    if (!tileCount) { setCredit('No satellite imagery: no internet connection.'); return; }
-    if (!backdrop) setCredit('Loading satellite imagery…');
-    let settled = 0, shown = 0;
-    const done = () => {
-      if (id !== drawId) return;
-      if (shown) setCredit(IMAGERY.credit);
-      if (settled === tileCount) {
-        if (backdrop) backdrop.remove();
-        if (!shown) { chart.classList.remove('sat'); setCredit('No satellite imagery: offline or not available here.'); }
+  // The view is kept while only passes or names change, and refits when the area changes.
+  function drawChart(base, ordered, pts, hwr) {
+    previewData = { base, pts, hwr };
+    const key = base.map(c => c.lat.toFixed(7) + ',' + c.lon.toFixed(7)).join(';');
+    const same = key === previewKey && preview.rendered;
+    previewKey = key;
+    preview.setBounds(base, same);
+    preview.render(same);
+  }
+
+  // ---------- Corner picker ----------
+  const pick = { pts: [null, null, null, null], active: 0, hist: [], me: null, goto: null, map: null, opener: null };
+  const pickOpen = () => !$('picker').hidden;
+
+  function drawPicker(ctx) {
+    const { S } = ctx;
+    const f = n => n.toFixed(1);
+    const xy = pick.pts.map(p => p && S(p));
+    let vp = '';
+    if (xy.every(Boolean)) vp += `<polygon class="pk-area" points="${xy.map(p => p.map(f).join(',')).join(' ')}"/>`;
+    for (let i = 0; i < 4; i++) {
+      const a = xy[i], b = xy[(i + 1) % 4];
+      if (a && b && (i < 3 || xy.every(Boolean))) vp += `<line class="pk-edge${i === 0 ? ' first' : ''}" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
+    }
+    if (pick.me) {
+      const [x, y] = S(pick.me);
+      vp += `<circle class="pk-acc" cx="${f(x)}" cy="${f(y)}" r="${f(Math.max(8, pick.me.acc / ctx.mPerPx))}"/><circle class="pk-me" cx="${f(x)}" cy="${f(y)}" r="7"/>`;
+    }
+    if (pick.goto) {
+      const [x, y] = S(pick.goto);
+      vp += `<g class="pk-goto" transform="translate(${f(x)},${f(y)})"><circle r="10"/><line x1="-16" x2="16"/><line y1="-16" y2="16"/></g>`;
+    }
+    xy.forEach((p, i) => {
+      if (!p) return;
+      const on = i === pick.active ? ' on' : '';
+      vp += `<line class="pk-stem" x1="${f(p[0])}" y1="${f(p[1])}" x2="${f(p[0])}" y2="${f(p[1] - 22)}"/>` +
+        `<circle class="pk-dot" cx="${f(p[0])}" cy="${f(p[1])}" r="5"/>` +
+        `<circle class="tag${on}" cx="${f(p[0])}" cy="${f(p[1] - 34)}" r="14"/><text class="tagt${on}" x="${f(p[0])}" y="${f(p[1] - 28.5)}">${i + 1}</text>`;
+    });
+    return { vp, fixed: scaleBarSvg(ctx) };
+  }
+
+  function pickerMap() {
+    if (pick.map) return pick.map;
+    const svg = $('pick-map');
+    pick.map = createMap(svg, {
+      size: () => { const r = svg.getBoundingClientRect(); const W = Math.max(1, Math.round(r.width)), H = Math.max(1, Math.round(r.height)); return { W, H, mapH: H }; },
+      pad: () => ({ l: 70, r: 70, t: 90, b: 70 }),
+      // Out to the whole world, in to about 0.25 m per pixel.
+      zoomLimits: r => [r.W / 256, r.mPerK / 0.25],
+      maxFitMPerPx: 1.2,
+      touch: 'pointer', dblclickZoom: false, maxTiles: 96,
+      controls: { zin: $('pick-zin'), zout: $('pick-zout'), fit: $('pick-fit') },
+      credit: msg => { $('pick-credit').textContent = msg; },
+      imagery: () => !imageryBlocked(),
+      draw: drawPicker,
+      onTap: ll => placeCorner(ll),
+      after: map => { $('pick-fit').disabled = !map.view; }
+    });
+    return pick.map;
+  }
+
+  function nextEmpty(from) {
+    for (let d = 1; d <= 4; d++) { const j = (from + d) % 4; if (!pick.pts[j]) return j; }
+    return -1;
+  }
+  function pickStatus(msg, kind) { const s = $('pick-status'); s.textContent = msg || ''; s.className = 'pick-status' + (kind ? ' ' + kind : ''); }
+  function syncPicker() {
+    const n = pick.pts.filter(Boolean).length;
+    document.querySelectorAll('[data-pc]').forEach(b => {
+      const i = +b.dataset.pc;
+      b.setAttribute('aria-pressed', String(i === pick.active));
+      b.classList.toggle('set', !!pick.pts[i]);
+      b.setAttribute('aria-label', `Corner ${i + 1}${pick.pts[i] ? ', placed' : ''}`);
+    });
+    const a = pick.active;
+    $('pick-msg').textContent = a < 0
+      ? 'All four corners are placed. Tap Use corners, or pick a number to move one.'
+      : pick.pts[a] ? `Tap the map to move corner ${a + 1}.`
+        : n === 0 ? 'Tap the map to place corner 1, then go around the area in order.'
+          : `Tap the map to place corner ${a + 1}.`;
+    $('pick-done').disabled = n < 4;
+    $('pick-undo').disabled = !pick.hist.length;
+    $('pick-clear').disabled = n === 0;
+  }
+
+  function placeCorner(ll) {
+    if (pick.active < 0) { pickStatus('All four corners are placed. Pick a number first to move one.'); return; }
+    const i = pick.active;
+    pick.hist.push({ i, prev: pick.pts[i] });
+    pick.pts[i] = { lat: ll.lat, lon: ll.lon };
+    pick.active = nextEmpty(i);
+    pickStatus(`Corner ${i + 1}: ${U.fmtPos(ll)}`);
+    syncPicker();
+    pick.map.redrawOverlay();
+  }
+
+  function openPicker(e) {
+    pick.opener = e && e.currentTarget;
+    const parsed = cornerInputs.map(el => U.parseCoord(el.value));
+    pick.pts = state.mode === 'corners'
+      ? parsed.map(p => (p.error || p.empty) ? null : { lat: p.lat, lon: p.lon })
+      : (last.base ? last.base.map(c => ({ lat: c.lat, lon: c.lon })) : [null, null, null, null]);
+    pick.hist = []; pick.goto = null;
+    pick.active = pick.pts.findIndex(p => !p);
+    const known = pick.pts.filter(Boolean);
+    const ref = known.length ? known : (last.base || EXAMPLE.corners.map(c => U.parseCoord(c)));
+    $('picker').hidden = false;
+    document.documentElement.classList.add('picking');
+    pickStatus('');
+    syncPicker();
+    const map = pickerMap();
+    map.setBounds(ref);
+    requestAnimationFrame(() => { if (!pickOpen()) return; map.render(false); $('picker-title').focus(); });
+  }
+  function closePicker(apply) {
+    if (apply) {
+      const pts = pick.pts.map(p => ({ lat: p.lat, lon: p.lon, text: p.lat.toFixed(6) + ', ' + p.lon.toFixed(6) }));
+      fillCorners(pts);
+    }
+    $('picker').hidden = true;
+    document.documentElement.classList.remove('picking');
+    if (pick.opener) pick.opener.focus();
+  }
+
+  $('pick-open').addEventListener('click', openPicker);
+  $('pick-cancel').addEventListener('click', () => closePicker(false));
+  $('pick-done').addEventListener('click', () => closePicker(true));
+  $('pick-undo').addEventListener('click', () => {
+    const h = pick.hist.pop();
+    if (!h) return;
+    pick.pts[h.i] = h.prev;
+    pick.active = h.i;
+    pickStatus(`Undid corner ${h.i + 1}.`);
+    syncPicker(); pick.map.redrawOverlay();
+  });
+  $('pick-clear').addEventListener('click', () => {
+    pick.pts.forEach((p, i) => { if (p) pick.hist.push({ i, prev: p }); });
+    pick.pts = [null, null, null, null];
+    pick.active = 0;
+    pickStatus('Cleared. Undo brings the corners back.');
+    syncPicker(); pick.map.redrawOverlay();
+  });
+  document.querySelectorAll('[data-pc]').forEach(b => b.addEventListener('click', () => {
+    pick.active = +b.dataset.pc;
+    pickStatus('');
+    syncPicker(); pick.map.redrawOverlay();
+  }));
+  $('pick-me').addEventListener('click', () => {
+    if (!navigator.geolocation) { pickStatus("This device can't share its location.", 'err'); return; }
+    pickStatus('Finding your location…');
+    navigator.geolocation.getCurrentPosition(pos => {
+      pick.me = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 0 };
+      pick.map.centerOn(pick.me, 1.2);
+      pickStatus(`Centered on your location (±${fmtDist(pick.me.acc)}).`, 'ok');
+    }, err => {
+      pickStatus(err && err.code === 1
+        ? 'Location access was denied. Allow location for this site, or move the map by hand.'
+        : "Couldn't get your location. Move the map by hand instead.", 'err');
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  });
+  $('pick-goto').addEventListener('submit', e => {
+    e.preventDefault();
+    const p = U.parseCoord($('pick-goto-in').value);
+    if (p.empty) return;
+    if (p.error) { pickStatus(`Go to: ${p.error}.`, 'err'); return; }
+    pick.goto = { lat: p.lat, lon: p.lon };
+    pick.map.centerOn(pick.goto, 1.2);
+    pickStatus(`Centered on ${U.fmtPos(p)}.`, 'ok');
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && pickOpen()) closePicker(false); });
+
+  // ---------- Paste all four corners ----------
+  function fillCorners(pts) {
+    pts.forEach((p, i) => { cornerInputs[i].value = p.text; state.corners[i] = p.text; });
+    state.mode = 'corners';
+    state.example = false;
+    update();
+  }
+  function pasteStatus(msg, kind) { const s = $('paste-status'); s.textContent = msg || ''; s.className = 'status' + (kind ? ' ' + kind : ''); }
+  const HOW = { 'separate lines': 'one per line', 'one line': 'one line', GPX: 'the GPX', KML: 'the KML' };
+  function handlePasteText(text) {
+    const r = U.parseCorners(text);
+    if (r.empty) { pasteStatus(''); return; }
+    if (r.error) { pasteStatus(r.error, 'err'); return; }
+    fillCorners(r.pts);
+    pasteStatus(`Filled corners 1–4 from ${HOW[r.how] || r.how}. Check the readings under each box.`, 'ok');
+  }
+  $('paste-open').addEventListener('click', () => {
+    const open = $('paste-panel').hidden;
+    $('paste-panel').hidden = !open;
+    $('paste-open').setAttribute('aria-expanded', String(open));
+    if (open) $('paste-box').focus();
+  });
+  $('paste-box').addEventListener('input', e => handlePasteText(e.target.value));
+  if (navigator.clipboard && navigator.clipboard.readText) {
+    $('paste-clip').hidden = false;
+    $('paste-clip').addEventListener('click', async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        $('paste-box').value = text;
+        handlePasteText(text);
+      } catch (err) {
+        pasteStatus('This browser blocked reading the clipboard. Long-press (or Ctrl+V) in the box to paste instead.', 'err');
       }
-    };
-    chart.querySelectorAll('#vp > .sat-tiles svg').forEach(box => {
-      const img = box.querySelector('image');
-      let depth = 0;
-      img.addEventListener('load', () => {
-        if (id !== drawId) return;
-        settled++; shown++;
-        chart.classList.add('sat');
-        done();
-      });
-      img.addEventListener('error', () => {
-        if (id !== drawId) return;
-        const z = +box.dataset.z, x = +box.dataset.x, y = +box.dataset.y;
-        depth++;
-        if (depth > IMAGERY.fallbackLevels || z - depth < 0) { box.remove(); settled++; done(); return; }
-        const m = Math.pow(2, depth), size = 256 / m;
-        box.setAttribute('viewBox', `${(x % m) * size} ${(y % m) * size} ${size} ${size}`);
-        img.setAttribute('href', IMAGERY.url(z - depth, y >> depth, x >> depth));
-      });
     });
   }
-
-  // ---------- Zoom and pan ----------
-  // Gestures move the drawing with a transform right away; when they settle, the map is
-  // redrawn at the new scale so lines stay crisp and sharper imagery loads.
-  const chartEl = $('chart');
-  let commitTimer = null, gesture = null, drag = null;
-
-  function svgPoint(clientX, clientY) {
-    const r = chartEl.getBoundingClientRect();
-    return [(clientX - r.left) * W / r.width, (clientY - r.top) * H / r.height];
-  }
-  function applyLive() {
-    const vp = document.getElementById('vp');
-    if (vp) vp.setAttribute('transform', `matrix(${live.s} 0 0 ${live.s} ${live.tx} ${live.ty})`);
-  }
-  // Zoom limits: out to 1/8 of the fitted size, in to about 0.25 m per screen pixel.
-  function scaleBounds() {
-    const kMin = rendered.fitK / 8;
-    const kMax = Math.max(rendered.fitK * 2, rendered.mPerK / 0.25);
-    return [kMin / rendered.k, kMax / rendered.k];
-  }
-  function setLive(s, tx, ty) { live = { s, tx, ty }; applyLive(); }
-  function zoomAt(p, factor, delay) {
-    if (!rendered) return;
-    const [lo, hi] = scaleBounds();
-    const s = Math.max(lo, Math.min(hi, live.s * factor));
-    const fct = s / live.s;
-    setLive(s, p[0] - fct * (p[0] - live.tx), p[1] - fct * (p[1] - live.ty));
-    scheduleCommit(delay);
-  }
-  function scheduleCommit(delay) {
-    clearTimeout(commitTimer);
-    commitTimer = setTimeout(commit, delay === undefined ? 250 : delay);
-  }
-  function commit() {
-    if (!rendered || !last.pts || gesture || drag) return;
-    if (live.s === 1 && live.tx === 0 && live.ty === 0) return;
-    const k = rendered.k * live.s, ox = rendered.ox * live.s + live.tx, oy = rendered.oy * live.s + live.ty;
-    view = { k, cx: (W / 2 - ox) / k, cy: (MAP_H / 2 - oy) / k };
-    drawChart(last.base, last.ordered, last.pts, last.hwr, true);
-  }
-  function fitView() {
-    if (!last.pts) return;
-    clearTimeout(commitTimer);
-    view = null;
-    drawChart(last.base, last.ordered, last.pts, last.hwr, true);
-  }
-
-  $('zoom-in').addEventListener('click', () => zoomAt([W / 2, MAP_H / 2], 2, 120));
-  $('zoom-out').addEventListener('click', () => zoomAt([W / 2, MAP_H / 2], 0.5, 120));
-  $('zoom-fit').addEventListener('click', fitView);
-
-  // Mouse: wheel zooms at the pointer, drag pans, double-click zooms in.
-  chartEl.addEventListener('wheel', e => {
-    if (!rendered) return;
-    e.preventDefault();
-    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
-    zoomAt(svgPoint(e.clientX, e.clientY), Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0015)));
-  }, { passive: false });
-  chartEl.addEventListener('dblclick', e => { if (rendered) { e.preventDefault(); zoomAt(svgPoint(e.clientX, e.clientY), 2, 120); } });
-  chartEl.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'touch' || e.button !== 0 || !rendered) return;
-    drag = { p: svgPoint(e.clientX, e.clientY), moved: false };
-    chartEl.setPointerCapture(e.pointerId);
-    clearTimeout(commitTimer);
-  });
-  chartEl.addEventListener('pointermove', e => {
-    if (!drag || e.pointerType === 'touch') return;
-    const p = svgPoint(e.clientX, e.clientY);
-    const dx = p[0] - drag.p[0], dy = p[1] - drag.p[1];
-    if (!drag.moved && Math.hypot(dx, dy) < 3) return;
-    drag.moved = true; drag.p = p;
-    chartEl.classList.add('dragging');
-    setLive(live.s, live.tx + dx, live.ty + dy);
-  });
-  const endDrag = e => {
-    if (!drag || (e && e.pointerType === 'touch')) return;
-    drag = null;
-    chartEl.classList.remove('dragging');
-    scheduleCommit(0);
-  };
-  chartEl.addEventListener('pointerup', endDrag);
-  chartEl.addEventListener('pointercancel', endDrag);
-
-  // Touch: two fingers pan and zoom; one finger keeps scrolling the page.
-  let hintTimer = null, oneTouch = null;
-  function showHint() {
-    const h = $('map-hint');
-    h.hidden = false;
-    clearTimeout(hintTimer);
-    hintTimer = setTimeout(() => { h.hidden = true; }, 1600);
-  }
-  function touchState(t) {
-    const a = svgPoint(t[0].clientX, t[0].clientY), b = svgPoint(t[1].clientX, t[1].clientY);
-    return { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, m: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2] };
-  }
-  chartEl.addEventListener('touchstart', e => {
-    if (!rendered) return;
-    if (e.touches.length >= 2) {
-      e.preventDefault();
-      clearTimeout(commitTimer);
-      $('map-hint').hidden = true;
-      const t = touchState(e.touches);
-      gesture = { d0: t.d, m0: t.m, s0: live.s, tx0: live.tx, ty0: live.ty };
-      oneTouch = null;
-    } else {
-      oneTouch = { x: e.touches[0].clientX, y: e.touches[0].clientY, hinted: false };
-    }
-  }, { passive: false });
-  chartEl.addEventListener('touchmove', e => {
-    if (gesture && e.touches.length >= 2) {
-      e.preventDefault();
-      const t = touchState(e.touches);
-      const [lo, hi] = scaleBounds();
-      const s = Math.max(lo, Math.min(hi, gesture.s0 * t.d / gesture.d0));
-      const fct = s / gesture.s0;
-      setLive(s, t.m[0] - fct * (gesture.m0[0] - gesture.tx0), t.m[1] - fct * (gesture.m0[1] - gesture.ty0));
-    } else if (oneTouch && e.touches.length === 1 && !oneTouch.hinted) {
-      const t = e.touches[0];
-      if (Math.hypot(t.clientX - oneTouch.x, t.clientY - oneTouch.y) > 12) { oneTouch.hinted = true; showHint(); }
-    }
-  }, { passive: false });
-  const endTouch = e => {
-    if (gesture && e.touches.length < 2) { gesture = null; scheduleCommit(0); }
-    if (!e.touches.length) oneTouch = null;
-  };
-  chartEl.addEventListener('touchend', endTouch);
-  chartEl.addEventListener('touchcancel', endTouch);
+  // Pasting several positions into any corner box fills all four.
+  cornerInputs.forEach(el => el.addEventListener('paste', e => {
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    const r = U.parseCorners(text);
+    if (r.pts) { e.preventDefault(); fillCorners(r.pts); }
+  }));
 
   // ---------- Saving ----------
   const framed = (() => { try { return window.top !== window.self; } catch (e) { return true; } })();
