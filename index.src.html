@@ -1162,7 +1162,8 @@ button.pk-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   }
 
   // ---------- Corner picker ----------
-  const pick = { pts: [null, null, null, null], active: 0, hist: [], me: null, goto: null, map: null, opener: null };
+  const pick = { pts: [null, null, null, null], active: 0, hist: [], me: null, goto: null, map: null, opener: null, ref: [], touched: false, locReq: 0 };
+  const PICK_M_PER_PX = 2;   // opening zoom: about 800 m across a phone screen
   const pickOpen = () => !$('picker').hidden;
 
   function drawPicker(ctx) {
@@ -1210,12 +1211,26 @@ button.pk-btn:disabled { opacity: 0.45; cursor: not-allowed; }
       onTap: ll => placeCorner(ll),
       after: map => { $('pick-fit').disabled = !map.view; }
     });
+    // Once the user starts moving the map, a late location fix no longer moves it for them.
+    const touched = () => { pick.touched = true; };
+    svg.addEventListener('pointerdown', touched);
+    svg.addEventListener('wheel', touched, { passive: true });
+    ['pick-zin', 'pick-zout', 'pick-fit'].forEach(id => $(id).addEventListener('click', touched));
     return pick.map;
   }
 
   function nextEmpty(from) {
     for (let d = 1; d <= 4; d++) { const j = (from + d) % 4; if (!pick.pts[j]) return j; }
     return -1;
+  }
+  // Fit shows the placed corners; with none placed, your location, or else the area the picker opened on.
+  function pickBounds() {
+    const placed = pick.pts.filter(Boolean);
+    return placed.length ? placed : pick.me ? [pick.me] : pick.ref;
+  }
+  function refreshPick() {
+    syncPicker();
+    if (pick.map) { pick.map.setBounds(pickBounds(), true); pick.map.redrawOverlay(); }
   }
   function pickStatus(msg, kind) { const s = $('pick-status'); s.textContent = msg || ''; s.className = 'pick-status' + (kind ? ' ' + kind : ''); }
   function syncPicker() {
@@ -1243,28 +1258,35 @@ button.pk-btn:disabled { opacity: 0.45; cursor: not-allowed; }
     pick.hist.push({ i, prev: pick.pts[i] });
     pick.pts[i] = { lat: ll.lat, lon: ll.lon };
     pick.active = nextEmpty(i);
+    pick.touched = true;
     pickStatus(`Corner ${i + 1}: ${U.fmtPos(ll)}`);
-    syncPicker();
-    pick.map.redrawOverlay();
+    refreshPick();
   }
 
   function openPicker(e) {
     pick.opener = e && e.currentTarget;
+    // Bring in corners the user entered; the built-in example corners start the picker empty.
     const parsed = cornerInputs.map(el => U.parseCoord(el.value));
-    pick.pts = state.mode === 'corners'
-      ? parsed.map(p => (p.error || p.empty) ? null : { lat: p.lat, lon: p.lon })
-      : (last.base ? last.base.map(c => ({ lat: c.lat, lon: c.lon })) : [null, null, null, null]);
-    pick.hist = []; pick.goto = null;
+    pick.pts = state.example ? [null, null, null, null]
+      : state.mode === 'corners' ? parsed.map(p => (p.error || p.empty) ? null : { lat: p.lat, lon: p.lon })
+        : (last.base ? last.base.map(c => ({ lat: c.lat, lon: c.lon })) : [null, null, null, null]);
+    pick.hist = []; pick.goto = null; pick.touched = false;
     pick.active = pick.pts.findIndex(p => !p);
     const known = pick.pts.filter(Boolean);
-    const ref = known.length ? known : (last.base || EXAMPLE.corners.map(c => U.parseCoord(c)));
+    pick.ref = known.length ? known : (last.base || EXAMPLE.corners.map(c => U.parseCoord(c)));
     $('picker').hidden = false;
     document.documentElement.classList.add('picking');
     pickStatus('');
     syncPicker();
     const map = pickerMap();
-    map.setBounds(ref);
-    requestAnimationFrame(() => { if (!pickOpen()) return; map.render(false); $('picker-title').focus(); });
+    map.setBounds(pickBounds());
+    // Show the search area straight away, then move to the device's position when it arrives.
+    requestAnimationFrame(() => {
+      if (!pickOpen()) return;
+      map.render(false);
+      $('picker-title').focus();
+      locate(true);
+    });
   }
   function closePicker(apply) {
     if (apply) {
@@ -1285,40 +1307,58 @@ button.pk-btn:disabled { opacity: 0.45; cursor: not-allowed; }
     pick.pts[h.i] = h.prev;
     pick.active = h.i;
     pickStatus(`Undid corner ${h.i + 1}.`);
-    syncPicker(); pick.map.redrawOverlay();
+    refreshPick();
   });
   $('pick-clear').addEventListener('click', () => {
     pick.pts.forEach((p, i) => { if (p) pick.hist.push({ i, prev: p }); });
     pick.pts = [null, null, null, null];
     pick.active = 0;
     pickStatus('Cleared. Undo brings the corners back.');
-    syncPicker(); pick.map.redrawOverlay();
+    refreshPick();
   });
   document.querySelectorAll('[data-pc]').forEach(b => b.addEventListener('click', () => {
     pick.active = +b.dataset.pc;
     pickStatus('');
     syncPicker(); pick.map.redrawOverlay();
   }));
-  $('pick-me').addEventListener('click', () => {
-    if (!navigator.geolocation) { pickStatus("This device can't share its location.", 'err'); return; }
+  // auto: the picker just opened. Failures are quiet then (the map already shows the search
+  // area), and a fix that arrives after the user has started moving the map only adds the dot.
+  function locate(auto) {
+    const req = ++pick.locReq;
+    if (!navigator.geolocation) {
+      pickStatus(auto ? "Showing the search area. This device doesn't share its location." : "This device can't share its location.", auto ? '' : 'err');
+      return;
+    }
     pickStatus('Finding your location…');
     navigator.geolocation.getCurrentPosition(pos => {
+      if (req !== pick.locReq || !pickOpen()) return;
       pick.me = { lat: pos.coords.latitude, lon: pos.coords.longitude, acc: pos.coords.accuracy || 0 };
-      pick.map.centerOn(pick.me, 1.2);
-      pickStatus(`Centered on your location (±${fmtDist(pick.me.acc)}).`, 'ok');
+      const acc = `±${fmtDist(pick.me.acc)}`;
+      pick.map.setBounds(pickBounds(), true);
+      if (auto && pick.touched) { pick.map.redrawOverlay(); pickStatus(`Your location is the blue dot (${acc}).`, 'ok'); return; }
+      pick.map.centerOn(pick.me, PICK_M_PER_PX);
+      pickStatus(`Centered on your location (${acc}).`, 'ok');
     }, err => {
-      pickStatus(err && err.code === 1
+      if (req !== pick.locReq || !pickOpen()) return;
+      const denied = err && err.code === 1;
+      if (auto) pickStatus(denied
+        ? 'Location is off for this site, so the map shows the search area. Allow location to open at your position.'
+        : "Couldn't get your location, so the map shows the search area.");
+      else pickStatus(denied
         ? 'Location access was denied. Allow location for this site, or move the map by hand.'
         : "Couldn't get your location. Move the map by hand instead.", 'err');
-    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
-  });
+    }, { enableHighAccuracy: true, timeout: auto ? 10000 : 15000, maximumAge: 300000 });
+  }
+  $('pick-me').addEventListener('click', () => locate(false));
   $('pick-goto').addEventListener('submit', e => {
     e.preventDefault();
     const p = U.parseCoord($('pick-goto-in').value);
     if (p.empty) return;
     if (p.error) { pickStatus(`Go to: ${p.error}.`, 'err'); return; }
     pick.goto = { lat: p.lat, lon: p.lon };
-    pick.map.centerOn(pick.goto, 1.2);
+    pick.touched = true;
+    pick.locReq++;
+    pick.map.centerOn(pick.goto, PICK_M_PER_PX);
     pickStatus(`Centered on ${U.fmtPos(p)}.`, 'ok');
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && pickOpen()) closePicker(false); });

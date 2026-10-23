@@ -32,7 +32,7 @@ Spaces work in place of ° ′ ″. Use N/S/E/W or a minus sign.
 
 ### Picking corners on a map
 
-**Pick on map** opens a full-screen satellite map. Tap to place corners 1 to 4 in order around the area. Drag or pinch to move the map, use **My location** (crosshair button) or **Go to** a typed position to get there, tap a corner number to move that corner, and **Undo** or **Clear** to start again. **Use corners** fills in the four boxes.
+**Pick on map** opens a full-screen satellite map, centered on your phone's location when location is allowed (otherwise on the current search area). Tap to place corners 1 to 4 in order around the area. Drag or pinch to move the map, use **My location** (crosshair button) or **Go to** a typed position to get there, tap a corner number to move that corner, and **Undo** or **Clear** to start again. **Use corners** fills in the four boxes.
 
 ### Pasting all four corners
 

@@ -228,6 +228,10 @@ async def run_profile(b, name, opts):
     before = [await pg.input_value(f'#c{i}') for i in range(4)]
     await pg.click('#pick-open')
     await pg.wait_for_selector('#pick-map .vp')
+    await pg.wait_for_function("document.getElementById('pick-status').textContent.includes('your location')", timeout=8000)
+    me = await pg.eval_on_selector('#pick-map .pk-me', '''e => { const vb = e.ownerSVGElement.viewBox.baseVal;
+        return [e.cx.baseVal.value - vb.width / 2, e.cy.baseVal.value - vb.height / 2]; }''')
+    check(name, 'picker opens centered on the device location', abs(me[0]) < 2 and abs(me[1]) < 2, str(me))
     pbox = await pg.locator('#pick-map').bounding_box()
     vw = opts['viewport']
     check(name, 'picker fills the screen, no sideways scroll', await vis('#picker') and pbox['width'] >= vw['width'] - 1
@@ -237,6 +241,7 @@ async def run_profile(b, name, opts):
     check(name, 'Cancel closes without changing corners', not await vis('#picker') and [await pg.input_value(f'#c{i}') for i in range(4)] == before)
 
     await pg.click('#pick-open'); await pg.wait_for_selector('#pick-map .vp')
+    await pg.wait_for_function("document.getElementById('pick-status').textContent.includes('your location')", timeout=8000)
     await pg.click('#pick-clear')
     check(name, 'Clear removes the corners and asks for corner 1', await pg.locator('#pick-map .pk-dot').count() == 0
           and 'corner 1' in await pg.inner_text('#pick-msg') and await pg.is_disabled('#pick-done'))
@@ -266,7 +271,7 @@ async def run_profile(b, name, opts):
     check(name, 'Undo removes the last corner', await pg.locator('#pick-map .pk-dot').count() == 2 and 'corner 3' in await pg.inner_text('#pick-msg'))
     await swipe(pbox['x'] + pbox['width'] / 2, pbox['y'] + pbox['height'] / 2, 40, 0)
     check(name, 'dragging moves the map without placing a corner', await pg.locator('#pick-map .pk-dot').count() == 2 and await pg.is_enabled('#pick-fit'))
-    await pg.click('#pick-fit'); await pg.wait_for_timeout(200)
+    await swipe(pbox['x'] + pbox['width'] / 2 + 40, pbox['y'] + pbox['height'] / 2, -40, 0)
     for x, y in pts[2:]: await tap(x, y)
     check(name, 'all four placed enables Use corners', await pg.locator('#pick-map .pk-dot').count() == 4
           and await pg.locator('#pick-map .pk-area').count() == 1 and await pg.is_enabled('#pick-done'))
@@ -290,16 +295,38 @@ async def run_profile(b, name, opts):
     check(name, 'no script errors', not errs, str(errs[:3]))
     await ctx.close()
 
+async def fresh_checks(b):
+    name = 'fresh'
+    for allow in (True, False):
+        extra = dict(permissions=['geolocation'], geolocation={'latitude': 40.7608, 'longitude': -111.8910, 'accuracy': 30}) if allow else {}
+        ctx = await b.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True, **extra)
+        pg = await ctx.new_page()
+        await pg.goto(URL); await pg.wait_for_selector('#stats .stat')
+        await pg.click('#pick-open'); await pg.wait_for_selector('#pick-map .vp')
+        if allow:
+            await pg.wait_for_function("document.getElementById('pick-status').textContent.includes('your location')", timeout=8000)
+            check(name, 'example corners are not carried into the picker', await pg.locator('#pick-map .pk-dot').count() == 0
+                  and 'corner 1' in await pg.inner_text('#pick-msg'))
+            check(name, 'opens at the device location (shows the blue dot)', await pg.locator('#pick-map .pk-me').count() == 1)
+        else:
+            await pg.wait_for_function("document.getElementById('pick-status').textContent.includes('search area')", timeout=12000)
+            st = await pg.inner_text('#pick-status')
+            check(name, 'no location permission: shows the search area with a note', await pg.locator('#pick-map .pk-me').count() == 0
+                  and 'pick-status err' not in await pg.eval_on_selector('#pick-status', 'e => "pick-status " + e.className'), st)
+        await ctx.close()
+
 async def main():
     async with async_playwright() as p:
         b = await p.chromium.launch()
+        if not os.environ.get('ONLY') or 'fresh' in os.environ['ONLY']:
+            await fresh_checks(b)
         for name, opts in PROFILES.items():
             if os.environ.get('ONLY') and name not in os.environ['ONLY'].split(','): continue
             await run_profile(b, name, opts)
         await b.close()
     srv.shutdown()
     width = max(len(r[1]) for r in results)
-    for prof in [p for p in PROFILES if any(r[0] == p for r in results)]:
+    for prof in [p for p in ['fresh', *PROFILES] if any(r[0] == p for r in results)]:
         rs = [r for r in results if r[0] == prof]
         print(f'\n{prof}: {sum(r[2] for r in rs)}/{len(rs)} passed')
         for _, n, ok, d in rs:
