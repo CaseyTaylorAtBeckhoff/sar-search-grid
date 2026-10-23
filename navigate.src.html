@@ -93,6 +93,83 @@ select.cand { width: 100%; }
 .map-svg .boat { fill: #2f7de1; stroke: #ffffff; stroke-width: 2.5; }
 .map-svg .near-link { stroke: #2f7de1; stroke-width: 2; stroke-dasharray: 3 4; fill: none; }
 .map-svg .near-pt { fill: var(--surface); stroke: #2f7de1; stroke-width: 2.5; }
+
+/* Track and coverage */
+.map-svg .rt-cov { stroke: var(--ok); stroke-width: 7; stroke-linecap: butt; fill: none; opacity: 0.85; }
+.map-svg .trk { stroke: #2f7de1; stroke-width: 2; fill: none; stroke-linejoin: round; stroke-linecap: round; opacity: 0.9; }
+#nav-map.sat .trk { stroke: #7fb6ff; }
+.cov-line { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.cov-line b { font: 600 15px/1.2 var(--font-data); color: var(--ok); }
+.resume {
+  display: grid; gap: 8px; padding: 12px 14px; border-radius: 10px; border: 2px solid var(--accent); background: var(--accent-soft);
+}
+.resume p { font-size: 14px; }
+.resume .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.resume button { min-height: 44px; border-radius: 8px; font: 600 15px/1 var(--font-body); cursor: pointer; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.resume button.go { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
+/* Run summary */
+.sum-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.sum-facts div { background: var(--surface); padding: 10px 12px; min-width: 0; }
+.sum-facts b { display: block; font: 600 20px/1.15 var(--font-data); font-variant-numeric: tabular-nums; }
+.sum-facts span { font-size: 12px; color: var(--muted); }
+.misses { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; }
+.misses li { display: flex; justify-content: space-between; gap: 10px; padding: 6px 10px; border-radius: 6px; background: var(--warn-soft); }
+.misses li b { font: 600 14px var(--font-data); }
+.misses.ok li { background: var(--sunken); }
+button.sound { font: 600 15px/1.1 var(--font-body); }
+button.sound[aria-pressed="true"] { background: var(--ok); color: #ffffff; border-color: var(--ok); }
+
+/* Navigating */
+.map-svg .rt-done { opacity: 0.35; }
+.map-svg .rt-active { stroke: var(--accent); stroke-width: 6; stroke-linecap: round; fill: none; }
+.map-svg .rt-next { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 8 6; stroke-linecap: round; fill: none; opacity: 0.8; }
+.map-svg .rt-target { fill: none; stroke: var(--accent); stroke-width: 3; }
+.map-svg .boat-arrow { fill: #2f7de1; stroke: #ffffff; stroke-width: 2.5; stroke-linejoin: round; }
+.map-svg .to-target { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; }
+.nav-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.nav-leg { font: 700 24px/1.05 var(--font-display); letter-spacing: 0.01em; margin: 0; }
+.nav-leg small { font: 600 14px/1 var(--font-body); color: var(--muted); letter-spacing: 0; margin-left: 4px; }
+.steer {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 14px;
+  border-radius: 12px; padding: 12px 14px; background: var(--sunken); border: 2px solid var(--line);
+}
+.steer .arrow { font: 700 46px/1 var(--font-body); grid-row: span 2; width: 1.1em; text-align: center; }
+.steer .big { font: 600 40px/1 var(--font-data); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.steer .what { font: 600 15px/1.2 var(--font-body); }
+.steer.on { border-color: var(--ok); }
+.steer.on .arrow, .steer.on .big { color: var(--ok); }
+.steer.off { border-color: var(--warn); background: var(--warn-soft); }
+.steer.off .arrow, .steer.off .big { color: var(--warn); }
+.steer.far { border-color: var(--bad); }
+.steer.far .arrow, .steer.far .big { color: var(--bad); }
+.steer.stale { opacity: 0.55; }
+.leg-progress { display: grid; gap: 6px; }
+.leg-progress .row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.leg-progress .row b { font: 600 18px/1.1 var(--font-data); }
+.bar { height: 8px; border-radius: 4px; background: var(--sunken); border: 1px solid var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); }
+.nav-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.nav-facts div { background: var(--surface); padding: 8px 10px; min-width: 0; }
+.nav-facts b { display: block; font: 600 17px/1.15 var(--font-data); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nav-facts span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.nav-btns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.nav-btns button, .nav-end button {
+  font: 600 15px/1.1 var(--font-body); min-height: 48px; border-radius: 10px; cursor: pointer;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); padding: 8px 6px;
+}
+.nav-btns button:hover:not(:disabled), .nav-end button:hover { background: var(--sunken); }
+.nav-btns button:disabled { opacity: 0.4; cursor: not-allowed; }
+.nav-end { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.nav-end.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.nav-end button.pause[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.toast {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 3; max-width: calc(100% - 120px);
+  background: var(--ink); color: var(--surface); font: 600 15px/1.2 var(--font-body); padding: 10px 14px; border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(13, 27, 41, 0.3); text-align: center; pointer-events: none;
+}
+@media (min-width: 900px) { .steer .big { font-size: 52px; } .steer .arrow { font-size: 58px; } }
+@media (max-width: 480px) and (max-height: 700px) { .steer .big { font-size: 32px; } .steer .arrow { font-size: 36px; } .nav-leg { font-size: 20px; } }
 </style>
 
 <div class="app" id="app">
@@ -111,7 +188,9 @@ select.cand { width: 100%; }
         <button type="button" id="nav-zin" aria-label="Zoom in" title="Zoom in">+</button>
         <button type="button" id="nav-zout" aria-label="Zoom out" title="Zoom out">&minus;</button>
         <button type="button" id="nav-fit" class="fit" aria-label="Fit the route" title="Fit the route">Fit</button>
+        <button type="button" id="nav-follow" class="follow" aria-pressed="true" aria-label="Follow the boat" title="Follow the boat" hidden>Follow</button>
       </div>
+      <div class="toast" id="toast" hidden role="status" aria-live="assertive"></div>
       <div class="credit" id="nav-credit"></div>
     </div>
 
@@ -130,6 +209,11 @@ select.cand { width: 100%; }
       <!-- Route loaded: choose where to start -->
       <section id="p-choose" hidden aria-labelledby="r-name">
         <div class="btns">
+          <div class="resume" id="resume" hidden>
+            <b>Unfinished run on this route</b>
+            <p id="resume-desc"></p>
+            <div class="row"><button type="button" class="go" id="resume-go">Resume run</button><button type="button" id="resume-drop">Discard</button></div>
+          </div>
           <div class="route-head"><h2 id="r-name"></h2><button type="button" class="link" id="change-route">Change</button></div>
           <p class="route-sum" id="r-sum"></p>
           <div class="note info" id="r-note" hidden></div>
@@ -150,6 +234,62 @@ select.cand { width: 100%; }
             <div><label class="lbl" for="units">Units</label><select id="units"><option value="ft">feet</option><option value="m">metres</option></select></div>
           </div>
           <p class="hint" id="tol-hint"></p>
+        </div>
+      </section>
+
+      <!-- Navigating -->
+      <section id="p-nav" hidden aria-labelledby="nav-leg">
+        <div class="btns">
+          <div class="nav-head"><h2 class="nav-leg" id="nav-leg"></h2><span class="hint" id="nav-route"></span></div>
+          <div class="steer" id="steer" role="status" aria-live="polite">
+            <span class="arrow" id="steer-arrow" aria-hidden="true">•</span>
+            <span class="big" id="steer-big">–</span>
+            <span class="what" id="steer-what">Waiting for GPS…</span>
+          </div>
+          <div class="leg-progress">
+            <div class="row"><span id="prog-label">To the end</span><b id="prog-to">–</b></div>
+            <div class="bar" aria-hidden="true"><i id="prog-bar"></i></div>
+          </div>
+          <div class="cov-line"><span id="cov-label">Passes covered</span><b id="cov-val">–</b></div>
+          <div class="nav-facts">
+            <div><b id="f-speed">–</b><span>Speed</span></div>
+            <div><b id="f-course">–</b><span id="f-line">Course</span></div>
+            <div><b id="f-eta">–</b><span>Pass ends in</span></div>
+          </div>
+          <div class="nav-btns">
+            <button type="button" id="nav-prev">◀ Back</button>
+            <button type="button" id="nav-near">Nearest</button>
+            <button type="button" id="nav-next">Skip ▶</button>
+          </div>
+          <div class="nav-end three">
+            <button type="button" class="sound" id="nav-sound" aria-pressed="false">Sound off</button>
+            <button type="button" class="pause" id="nav-pause" aria-pressed="false">Pause</button>
+            <button type="button" id="nav-stop">End run</button>
+          </div>
+          <p class="hint" id="wake-status"></p>
+        </div>
+      </section>
+
+      <!-- Run summary -->
+      <section id="p-done" hidden aria-labelledby="h-done">
+        <div class="btns">
+          <h2 id="h-done">Run summary</h2>
+          <p class="route-sum" id="sum-when"></p>
+          <div class="sum-facts">
+            <div><b id="sum-cov">–</b><span id="sum-cov-label">Passes covered</span></div>
+            <div><b id="sum-pct">–</b><span>Of pass length</span></div>
+            <div><b id="sum-dist">–</b><span>Distance run</span></div>
+            <div><b id="sum-gaps">–</b><span>Tracking gaps</span></div>
+          </div>
+          <h3 id="sum-miss-h">Not fully covered</h3>
+          <ul class="misses" id="sum-miss"></ul>
+          <button type="button" class="primary" id="sum-save">Save track (GPX)<small>Route, track and coverage, for CalTopo, Google Earth or the team</small></button>
+          <button type="button" class="secondary" id="sum-share" hidden>Share track…<small>Send it, or save to Files</small></button>
+          <div class="status" id="sum-status" role="status" aria-live="polite"></div>
+          <div class="nav-end">
+            <button type="button" id="sum-resume">Keep going</button>
+            <button type="button" id="sum-new">Done</button>
+          </div>
         </div>
       </section>
     </aside>
@@ -190,7 +330,13 @@ select.cand { width: 100%; }
     route: null,           // NavCore route model
     fix: null,             // latest GPS fix {lat, lon, acc, heading, speed, t}
     nearest: null,         // nearest point on the route to the fix
-    selLeg: null           // leg chosen by tapping the map
+    selLeg: null,          // leg chosen by tapping the map
+    mode: 'setup',         // 'setup' | 'choose' | 'nav'
+    nav: null,             // NavCore navigator while navigating
+    res: null,             // latest navigator result
+    paused: false,
+    follow: true,
+    course: null           // course over ground (degrees), from GPS or recent fixes
   };
 
   // ---------- Formatting ----------
@@ -233,7 +379,34 @@ select.cand { width: 100%; }
       }
     });
     vp += halos + lines;
-    if (app.selLeg !== null) {
+    if ((app.mode === 'nav' || app.mode === 'done') && app.nav) {
+      // Covered stretches of each leg, then the track the boat ran.
+      app.nav.state.cover.forEach((list, i) => list.forEach(([c0, c1]) => {
+        if (c1 - c0 < 0.5) return;
+        const a = S(N.pointOn(r, i, c0)), b = S(N.pointOn(r, i, c1));
+        vp += `<line class="rt-cov" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
+      }));
+      vp += trackPath(S, f);
+    }
+    if (app.mode === 'nav' && app.nav) {
+      const cur = app.nav.state.leg;
+      // Dim what is behind, highlight the current leg and show the next one.
+      r.legs.forEach(l => {
+        if (l.i >= cur) return;
+        const a = xy[l.from], b = xy[l.from + 1];
+        vp += `<line class="rt-halo rt-done" stroke-width="7" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
+      });
+      const nx = r.legs[cur + 1];
+      if (nx) { const a = xy[nx.from], b = xy[nx.from + 1]; vp += `<line class="rt-next" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`; }
+      const l = r.legs[cur], a = xy[l.from], b = xy[l.from + 1];
+      vp += `<line class="rt-active" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
+      vp += `<circle class="rt-target" cx="${f(b[0])}" cy="${f(b[1])}" r="11"/>`;
+      if (app.fix && app.res && app.res.along < 0) {
+        const bt = S(app.fix);
+        vp += `<line class="to-target" x1="${f(bt[0])}" y1="${f(bt[1])}" x2="${f(a[0])}" y2="${f(a[1])}"/>`;
+      }
+    }
+    if (app.selLeg !== null && app.mode === 'choose') {
       const l = r.legs[app.selLeg], a = xy[l.from], b = xy[l.from + 1];
       vp += `<line class="rt-sel" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
     }
@@ -243,11 +416,13 @@ select.cand { width: 100%; }
     // Boat, and a dashed link to the nearest point on the route.
     if (app.fix) {
       const b = S(app.fix);
-      if (app.nearest) {
+      if (app.nearest && app.mode === 'choose') {
         const np = S(N.pointOn(r, app.nearest.leg, app.nearest.along));
         vp += `<line class="near-link" x1="${f(b[0])}" y1="${f(b[1])}" x2="${f(np[0])}" y2="${f(np[1])}"/><circle class="near-pt" cx="${f(np[0])}" cy="${f(np[1])}" r="6"/>`;
       }
-      vp += `<circle class="boat-acc" cx="${f(b[0])}" cy="${f(b[1])}" r="${f(Math.max(9, (app.fix.acc || 0) / ctx.mPerPx))}"/><circle class="boat" cx="${f(b[0])}" cy="${f(b[1])}" r="8"/>`;
+      vp += `<circle class="boat-acc" cx="${f(b[0])}" cy="${f(b[1])}" r="${f(Math.max(9, (app.fix.acc || 0) / ctx.mPerPx))}"/>`;
+      if (app.course !== null) vp += `<path class="boat-arrow" transform="translate(${f(b[0])},${f(b[1])}) rotate(${app.course.toFixed(0)})" d="M0,-15 L10,11 L0,5 L-10,11 Z"/>`;
+      else vp += `<circle class="boat" cx="${f(b[0])}" cy="${f(b[1])}" r="8"/>`;
     }
     return { vp, fixed: M.scaleBarSvg(ctx, settings.units) };
   }
@@ -258,9 +433,9 @@ select.cand { width: 100%; }
     pad: () => ({ l: 64, r: 40, t: 40, b: 48 }),
     zoomLimits: r => [r.W / 256, r.mPerK / 0.25],
     maxFitMPerPx: 1.5,
-    touch: 'pointer', dblclickZoom: true, maxTiles: 96,
+    touch: 'pointer', dblclickZoom: true, maxTiles: 140, tileMargin: 0.35,
     controls: { zin: $('nav-zin'), zout: $('nav-zout'), fit: $('nav-fit') },
-    credit: msg => { $('nav-credit').textContent = msg; },
+    credit: msg => { $('nav-credit').textContent = /^No satellite/.test(msg) ? 'No imagery (offline)' : /^Satellite imagery isn't/.test(msg) ? 'No imagery here' : msg; },
     imagery: () => !M.imageryBlocked(),
     draw: drawNav,
     onTap: ll => tapRoute(ll),
@@ -278,7 +453,9 @@ select.cand { width: 100%; }
 
   // ---------- Loading a route ----------
   function showPanel(name) {
-    ['p-setup', 'p-choose'].forEach(id => { $(id).hidden = id !== 'p-' + name; });
+    app.mode = name;
+    ['p-setup', 'p-choose', 'p-nav', 'p-done'].forEach(id => { $(id).hidden = id !== 'p-' + name; });
+    $('nav-follow').hidden = name !== 'nav';
   }
 
   function setRoute(data) {
@@ -299,6 +476,7 @@ select.cand { width: 100%; }
     $('begin-desc').textContent = legLabel(r, 0);
     syncSettings();
     syncStart();
+    syncResume();
     showPanel('choose');
     renderMap(false);
     startGps();
@@ -367,7 +545,7 @@ select.cand { width: 100%; }
     const r = app.route;
     if (!r) return;
     if (app.fix) {
-      app.nearest = N.nearest(r, app.fix);
+      app.nearest = N.nearestToJoin(r, app.fix);
       $('start-near').disabled = false;
       $('near-desc').textContent = `${legLabel(r, app.nearest.leg)} · ${fmtShort(app.nearest.dist)} from the boat`;
     } else {
@@ -402,13 +580,481 @@ select.cand { width: 100%; }
     map.redrawOverlay();
   }
 
-  function begin(leg, along, how) {
-    // Live navigation arrives in the next section.
-    status('start-status', `Ready to start at ${legLabel(app.route, leg).toLowerCase()}${along > 1 ? `, ${fmtShort(along)} in` : ''} (${how}). Live navigation is coming in the next update.`, 'warn');
+  function begin(leg, along, saved) {
+    const r = app.route;
+    if (saved) {
+      app.nav = N.createNavigator(r, saved.nav);
+      app.run = saved;
+      app.run.hiddenAt = null;
+      // The page was closed or reloaded: mark the time it was away as a gap, and don't bridge it.
+      const lastPt = saved.track[saved.track.length - 1];
+      if (lastPt && Date.now() - lastPt[4] > 10000) saved.gaps.push({ from: lastPt[4], to: Date.now(), why: 'closed' });
+      app.nav.state.last = null;
+    } else {
+      app.nav = N.createNavigator(r);
+      app.nav.start(leg, along);
+      app.run = { v: 1, key: routeKey(app.routeData), route: app.routeData, startedAt: Date.now(), track: [], gaps: [], nav: app.nav.state, hiddenAt: null };
+    }
+    app.run.nav = app.nav.state;
+    saveRun();
+    app.res = null;
+    app.paused = false;
+    setSound(!!app.run.sound);
+    $('nav-pause').setAttribute('aria-pressed', 'false');
+    $('nav-pause').textContent = 'Pause';
+    $('nav-route').textContent = app.routeData.name || '';
+    showPanel('nav');
+    keepAwake();
+    // Zoom so a few lanes (or about 300 m) fit across the map, centred on the boat.
+    const W = map.rendered ? map.rendered.W : 400;
+    const span = r.grid ? Math.max(200, r.grid.lane * 8) : 300;
+    setFollow(true);
+    const at = app.fix || N.pointOn(r, app.nav.state.leg, saved ? 0 : along);
+    map.centerOn(at, span / W);
+    if (app.fix) refreshNav(); else showNav();
   }
-  $('start-near').addEventListener('click', () => app.nearest && begin(app.nearest.leg, app.nearest.along, 'nearest point'));
-  $('start-begin').addEventListener('click', () => begin(0, 0, 'beginning'));
-  $('start-sel').addEventListener('click', () => app.selLeg !== null && begin(app.selLeg, 0, 'chosen on the map'));
+  $('start-near').addEventListener('click', () => app.nearest && begin(app.nearest.leg, app.nearest.along));
+  $('start-begin').addEventListener('click', () => begin(0, 0));
+  $('start-sel').addEventListener('click', () => app.selLeg !== null && begin(app.selLeg, 0));
+
+  // ---------- Navigating ----------
+  const DEG = '\u00b0';
+  const legCount = r => r.grid ? `of ${r.grid.passCount}` : `of ${r.legs.length}`;
+  function headline(r, i) {
+    const l = r.legs[i];
+    if (r.grid) return l.isPass ? `Pass ${l.pass} <small>${legCount(r)}</small>` : `Turn <small>to pass ${(r.legs[i + 1] || {}).pass || ''}</small>`;
+    return `Leg ${i + 1} <small>${legCount(r)}</small>`;
+  }
+  const fmtSpeed = mps => settings.units === 'm' ? (mps * 3.6).toFixed(1) + ' km/h' : (mps * 2.23694).toFixed(1) + ' mph';
+  function fmtDuration(sec) {
+    if (!isFinite(sec) || sec < 0) return '–';
+    if (sec < 60) return Math.round(sec) + ' s';
+    const m = Math.round(sec / 60);
+    return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0');
+  }
+  const deg3 = d => String(Math.round(((d % 360) + 360) % 360)).padStart(3, '0') + DEG;
+
+  // Course over ground: the GPS heading when moving, else from fixes at least 3 m apart.
+  const recent = [];
+  function updateCourse(fix) {
+    recent.push(fix);
+    while (recent.length > 12 || (recent.length && fix.rt - recent[0].rt > 15000)) recent.shift();
+    if (fix.heading !== null && fix.heading !== undefined && isFinite(fix.heading) && (fix.speed || 0) > 0.3) { app.course = fix.heading; return; }
+    const r = app.route || N.buildRoute([fix, { lat: fix.lat + 0.001, lon: fix.lon }]);
+    for (let i = recent.length - 2; i >= 0; i--) {
+      const a = r.proj.fwd(recent[i]), b = r.proj.fwd(fix);
+      if (Math.hypot(b.x - a.x, b.y - a.y) >= 3) { app.course = N.bearingDeg(a, b); return; }
+    }
+  }
+  function speedOf(fix) {
+    if (fix.speed !== null && fix.speed !== undefined && isFinite(fix.speed)) return fix.speed;
+    const first = recent[0];
+    if (!first || first === fix || !app.route) return null;
+    const a = app.route.proj.fwd(first), b = app.route.proj.fwd(fix), dt = (fix.rt - first.rt) / 1000;
+    if (dt < 2) return null;
+    const v = Math.hypot(b.x - a.x, b.y - a.y) / dt;
+    return v < 40 ? v : null;     // ignore GPS jumps
+  }
+
+  function onNavFix() {
+    if (!app.nav || !app.fix) return;
+    if (!app.paused) {
+      recordTrack(app.fix);
+      const res = app.nav.update(app.fix);
+      if (res.advancedFrom.length && !res.finished) { toast(`${legName(res.advancedFrom[res.advancedFrom.length - 1])} done. Now ${legName(res.leg).toLowerCase()}.`); alert('leg'); }
+      if (res.finished && !(app.res && app.res.finished)) { toast('End of the route.'); alert('done'); }
+      app.res = res;
+      offLineAlert(res);
+    } else {
+      app.res = app.nav.peek(app.fix);
+    }
+    if (app.follow) map.panTo(app.fix);
+    showNav();
+    map.redrawOverlay();
+    scheduleSave();
+  }
+  const legName = i => legLabel(app.route, i);
+
+  function showNav() {
+    const r = app.route, st = app.nav.state, res = app.res;
+    $('nav-leg').innerHTML = st.finished ? 'Route done' : headline(r, st.leg);
+    $('nav-prev').disabled = st.leg === 0;
+    $('nav-next').disabled = st.leg >= r.legs.length - 1;
+    const steer = $('steer');
+    steer.classList.remove('on', 'off', 'far', 'stale');
+    const l = r.legs[st.leg];
+    showCoverage();
+    if (!app.fix || !res) {
+      $('steer-arrow').textContent = '•'; $('steer-big').textContent = '–';
+      $('steer-what').textContent = gpsState.error || 'Waiting for GPS…';
+      $('prog-to').textContent = fmtShort(l.len); $('prog-bar').style.width = '0%';
+      return;
+    }
+    if (gpsStale()) steer.classList.add('stale');
+    const tol = r.tol;
+    if (st.finished) {
+      $('steer-arrow').textContent = '✓'; $('steer-big').textContent = 'Done';
+      $('steer-what').textContent = 'You reached the end of the route.';
+      steer.classList.add('on');
+    } else if (res.along < -tol) {
+      // Not at the leg yet: head for its start.
+      const start = { lat: r.points[l.from].lat, lon: r.points[l.from].lon };
+      const p = r.proj.fwd(app.fix), q = r.proj.fwd(start);
+      const brg = N.bearingDeg(p, q), dist = Math.hypot(q.x - p.x, q.y - p.y);
+      const rel = app.course === null ? null : ((brg - app.course + 540) % 360) - 180;
+      $('steer-arrow').textContent = rel === null ? '↑' : Math.abs(rel) < 15 ? '↑' : rel < 0 ? '↰' : '↱';
+      $('steer-big').textContent = fmtShort(dist);
+      $('steer-what').textContent = `to the start of ${legName(st.leg).toLowerCase()} · head ${deg3(brg)}` + (rel === null || Math.abs(rel) < 15 ? '' : ` (turn ${Math.round(Math.abs(rel))}${DEG} ${rel < 0 ? 'left' : 'right'})`);
+      steer.classList.add(dist > tol * 6 ? 'far' : 'off');
+    } else {
+      const off = Math.abs(res.xte);
+      if (off <= tol) {
+        $('steer-arrow').textContent = '✓'; $('steer-big').textContent = 'On line';
+        $('steer-what').textContent = off < 0.5 ? 'Right on it' : `${fmtShort(off)} ${res.xte > 0 ? 'right' : 'left'} of the line`;
+        steer.classList.add('on');
+      } else {
+        // xte > 0: the boat is right of the line, so steer left.
+        $('steer-arrow').textContent = res.xte > 0 ? '◀' : '▶';
+        $('steer-big').textContent = fmtShort(off);
+        $('steer-what').textContent = `off the line · steer ${res.xte > 0 ? 'left' : 'right'}`;
+        steer.classList.add(off > tol * 3 ? 'far' : 'off');
+      }
+    }
+    const along = Math.max(0, Math.min(l.len, res.along));
+    $('prog-label').textContent = st.finished ? 'Route' : `To the end of ${legName(st.leg).toLowerCase()}`;
+    $('prog-to').textContent = st.finished ? 'done' : fmtShort(Math.max(0, l.len - along));
+    $('prog-bar').style.width = (st.finished ? 100 : (along / l.len * 100)).toFixed(1) + '%';
+    showCoverage();
+    const sp = speedOf(app.fix);
+    $('f-speed').textContent = sp === null ? '–' : fmtSpeed(sp);
+    $('f-course').textContent = app.course === null ? '–' : deg3(app.course);
+    $('f-line').textContent = `Course · line ${deg3(l.brg)}`;
+    $('f-eta').textContent = sp && sp > 0.3 && !st.finished ? fmtDuration((l.len - along) / sp) : '–';
+    $('f-eta').nextElementSibling.textContent = r.grid && !l.isPass ? 'Turn ends in' : r.grid ? 'Pass ends in' : 'Leg ends in';
+  }
+
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; }, 3500);
+  }
+
+  function setFollow(on) {
+    app.follow = on;
+    $('nav-follow').setAttribute('aria-pressed', String(on));
+    $('nav-follow').textContent = on ? 'Follow' : 'Find';
+    $('nav-follow').title = on ? 'Following the boat' : 'Go back to the boat';
+  }
+  $('nav-follow').addEventListener('click', () => { setFollow(true); if (app.fix) map.panTo(app.fix); });
+  // Moving the map by hand stops following until Follow is pressed.
+  svg.addEventListener('pointerdown', () => { if (app.mode === 'nav') setFollow(false); });
+  svg.addEventListener('wheel', () => { if (app.mode === 'nav') setFollow(false); }, { passive: true });
+  $('nav-fit').addEventListener('click', () => { if (app.mode === 'nav') setFollow(false); });
+
+  // Choosing a leg by hand shows where the boat is relative to it; the next GPS fix carries on from there.
+  function refreshNav() {
+    if (app.fix) app.res = app.nav.peek(app.fix);
+    showNav(); map.redrawOverlay();
+  }
+  $('nav-prev').addEventListener('click', () => { app.nav.setLeg(app.nav.state.leg - 1); refreshNav(); });
+  $('nav-next').addEventListener('click', () => { app.nav.setLeg(app.nav.state.leg + 1); refreshNav(); });
+  $('nav-near').addEventListener('click', () => {
+    if (!app.fix) { toast('Waiting for GPS.'); return; }
+    const n = N.nearestToJoin(app.route, app.fix);
+    app.nav.setLeg(n.leg);
+    toast(`Jumped to ${legName(n.leg).toLowerCase()}, ${fmtShort(n.dist)} away.`);
+    refreshNav();
+  });
+  $('nav-pause').addEventListener('click', () => {
+    app.paused = !app.paused;
+    $('nav-pause').setAttribute('aria-pressed', String(app.paused));
+    $('nav-pause').textContent = app.paused ? 'Resume' : 'Pause';
+    if (!app.paused) app.nav.state.last = null;      // don't count the paused stretch as covered
+    toast(app.paused ? 'Paused. Coverage is not counted until you resume.' : 'Resumed.');
+  });
+  $('nav-stop').addEventListener('click', () => endRun());
+  function endRun() {
+    releaseWake();
+    if (!app.run) { showPanel('choose'); return; }
+    app.run.endedAt = Date.now();
+    saveRun();
+    showSummary();
+  }
+
+  // Keep the screen on while navigating (re-requested when the page comes back into view).
+  let wake = null;
+  async function keepAwake() {
+    if (app.mode !== 'nav') return;
+    if (!('wakeLock' in navigator)) { $('wake-status').textContent = 'This browser may let the screen turn off. Set auto-lock to Never while navigating; tracking stops when the screen is off.'; return; }
+    try {
+      wake = await navigator.wakeLock.request('screen');
+      $('wake-status').textContent = 'The screen stays on while navigating. Keep this page open: tracking stops if you switch apps or lock the phone.';
+      wake.addEventListener('release', () => { wake = null; });
+    } catch (e) {
+      $('wake-status').textContent = "Couldn't keep the screen on (battery saver?). Set auto-lock to Never while navigating.";
+    }
+  }
+  function releaseWake() { if (wake) { wake.release().catch(() => {}); wake = null; } }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && app.mode === 'nav' && !wake) keepAwake(); });
+
+  // ---------- Track, coverage and resume ----------
+  // sar-nav-run: { v, key, route, startedAt, endedAt?, track: [[t, lat, lon, acc], ...], gaps: [{from, to, why}], nav }
+  const RUN_KEY = 'sar-nav-run';
+  const routeKey = d => d ? [d.name, d.points.length, d.points[0].lat, d.points[0].lon, d.points[d.points.length - 1].lat].join('|') : '';
+  let saveTimer = null, saveWarned = false;
+  function saveRun() {
+    clearTimeout(saveTimer); saveTimer = null;
+    if (!app.run) return;
+    try { localStorage.setItem(RUN_KEY, JSON.stringify(app.run)); }
+    catch (e) {
+      if (!saveWarned) { saveWarned = true; toast("Phone storage is full: the track is kept only while this page stays open."); }
+    }
+  }
+  function scheduleSave() { if (!saveTimer) saveTimer = setTimeout(saveRun, 5000); }
+  // Save right away when the page is hidden or closed: phones may drop it without warning.
+  window.addEventListener('pagehide', saveRun);
+
+  function recordTrack(fix) {
+    const run = app.run;
+    if (!run) return;
+    const tr = run.track, last = tr[tr.length - 1];
+    if (last) {
+      const dt = fix.rt - last[4];
+      // Fixes stopped for a while with the page open: note a GPS gap.
+      if (dt > 20000 && !run.gaps.some(g => g.to >= last[4] && g.from <= fix.rt)) run.gaps.push({ from: last[4], to: fix.rt, why: 'gps' });
+      const r = app.route, a = r.proj.fwd({ lat: last[1], lon: last[2] }), b = r.proj.fwd(fix);
+      if (Math.hypot(b.x - a.x, b.y - a.y) < 2 && dt < 10000) return;
+    }
+    tr.push([fix.t, +fix.lat.toFixed(6), +fix.lon.toFixed(6), Math.round(fix.acc || 0), fix.rt]);
+  }
+
+  // The track as SVG paths, broken where tracking stopped. Long tracks are thinned for drawing.
+  function trackPath(S, f) {
+    const tr = app.run ? app.run.track : [];
+    if (tr.length < 2) return '';
+    const step = Math.max(1, Math.ceil(tr.length / 3000));
+    let d = '', prev = null;
+    for (let i = 0; i < tr.length; i += step) {
+      const p = tr[i], xy = S({ lat: p[1], lon: p[2] });
+      d += (prev && p[4] - prev[4] < 20000 * step ? 'L' : 'M') + f(xy[0]) + ',' + f(xy[1]);
+      prev = p;
+    }
+    return `<path class="trk" d="${d}"/>`;
+  }
+
+  function coverageSummary() {
+    const r = app.route, cov = app.nav.coverage();
+    const items = r.legs.filter(l => l.isPass);
+    const done = items.filter(l => cov.per[l.i] >= 0.9).length;
+    return { done, total: items.length, fraction: cov.fraction, per: cov.per };
+  }
+  function showCoverage() {
+    const c = coverageSummary();
+    $('cov-label').textContent = app.route.grid ? 'Passes covered' : 'Legs covered';
+    $('cov-val').textContent = `${c.done} of ${c.total} · ${Math.round(c.fraction * 100)}%`;
+  }
+
+  // Screen off or another app: phones stop location for web pages. Note the gap when we come back.
+  document.addEventListener('visibilitychange', () => {
+    const run = app.run;
+    if (!run || app.mode !== 'nav') return;
+    if (document.visibilityState === 'hidden') { run.hiddenAt = Date.now(); saveRun(); return; }
+    if (run.hiddenAt) {
+      const away = Date.now() - run.hiddenAt;
+      if (away > 10000) {
+        run.gaps.push({ from: run.hiddenAt, to: Date.now(), why: 'screen' });
+        toast(`Tracking stopped for ${fmtDuration(away / 1000)} while the screen was off or another app was open.`);
+      }
+      run.hiddenAt = null;
+      app.nav.state.last = null;   // don't count the missing stretch as covered
+      saveRun();
+    }
+  });
+
+  function savedRun() {
+    const run = load(RUN_KEY);
+    return run && !run.endedAt && run.route && run.nav && run.key === routeKey(app.routeData) ? run : null;
+  }
+  function syncResume() {
+    const run = app.routeData ? savedRun() : null;
+    $('resume').hidden = !run;
+    if (!run) return;
+    const r = app.route, nav = N.createNavigator(r, run.nav);
+    const cov = nav.coverage(), when = new Date(run.startedAt);
+    const time = when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const day = new Date().toDateString() === when.toDateString() ? 'today' : when.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    $('resume-desc').textContent = `Started ${day} at ${time} · ${legLabel(r, run.nav.leg).toLowerCase()} · ${Math.round(cov.fraction * 100)}% of ${r.grid ? 'passes' : 'legs'} covered · ${run.track.length} track points`;
+  }
+  $('resume-go').addEventListener('click', () => { const run = savedRun(); if (run) begin(run.nav.leg, 0, run); });
+  $('resume-drop').addEventListener('click', () => { try { localStorage.removeItem(RUN_KEY); } catch (e) { /* ignore */ } syncResume(); });
+
+  // ---------- Run summary and export ----------
+  function runStats(run) {
+    const r = app.route, nav = N.createNavigator(r, run.nav), cov = nav.coverage();
+    let dist = 0;
+    for (let i = 1; i < run.track.length; i++) {
+      const a = run.track[i - 1], b = run.track[i];
+      if (b[4] - a[4] > 20000) continue;
+      const p = r.proj.fwd({ lat: a[1], lon: a[2] }), q = r.proj.fwd({ lat: b[1], lon: b[2] });
+      dist += Math.hypot(q.x - p.x, q.y - p.y);
+    }
+    const items = r.legs.filter(l => l.isPass);
+    const misses = items.filter(l => cov.per[l.i] < 0.9).map(l => ({ l, f: cov.per[l.i] }));
+    const gapMs = run.gaps.reduce((s, g) => s + (g.to - g.from), 0);
+    const end = run.endedAt || Date.now();
+    return { cov, items, misses, dist, gapMs, mins: (end - run.startedAt) / 60000 };
+  }
+  function showSummary() {
+    const run = app.run, r = app.route, st = runStats(run);
+    showPanel('done');
+    const when = new Date(run.startedAt);
+    $('sum-when').textContent = `${app.routeData.name} · ${when.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${when.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} · ${fmtDuration(st.mins * 60)}`;
+    $('sum-cov').textContent = `${st.items.length - st.misses.length} of ${st.items.length}`;
+    $('sum-cov-label').textContent = r.grid ? 'Passes covered' : 'Legs covered';
+    $('sum-pct').textContent = `${Math.round(st.cov.fraction * 100)}%`;
+    $('sum-dist').textContent = fmtDist(st.dist);
+    $('sum-gaps').textContent = run.gaps.length ? `${run.gaps.length} · ${fmtDuration(st.gapMs / 1000)}` : 'None';
+    const label = l => r.grid ? `Pass ${l.pass}` : `Leg ${l.i + 1}`;
+    $('sum-miss-h').textContent = st.misses.length ? 'Not fully covered' : `Every ${r.grid ? 'pass' : 'leg'} covered`;
+    $('sum-miss').className = 'misses' + (st.misses.length ? '' : ' ok');
+    // Partly covered items one per row; runs of untouched ones as a range.
+    const rows = [];
+    st.misses.forEach(m => {
+      const prev = rows[rows.length - 1];
+      if (m.f === 0 && prev && prev.zero && prev.last.i + (r.grid ? 2 : 1) === m.l.i) { prev.last = m.l; return; }
+      rows.push({ first: m.l, last: m.l, zero: m.f === 0, f: m.f });
+    });
+    const plural = r.grid ? 'Passes' : 'Legs';
+    const num = l => r.grid ? l.pass : l.i + 1;
+    $('sum-miss').innerHTML = rows.slice(0, 80).map(x => x.first === x.last
+      ? `<li><span>${label(x.first)}</span><b>${x.zero ? 'not run' : Math.round(x.f * 100) + '%'}</b></li>`
+      : `<li><span>${plural} ${num(x.first)}–${num(x.last)}</span><b>not run</b></li>`).join('');
+    status('sum-status', '');
+    try {
+      const probe = new File(['x'], 'x.gpx', { type: 'application/gpx+xml' });
+      $('sum-share').hidden = !(navigator.canShare && navigator.canShare({ files: [probe] }));
+    } catch (e) { $('sum-share').hidden = true; }
+    setFollow(false);
+    map.fit();
+  }
+
+  const xmlEsc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const iso = t => new Date(t).toISOString().replace(/\.\d{3}Z$/, 'Z');
+  function trackGpx() {
+    const run = app.run, r = app.route, st = runStats(run), name = app.routeData.name || 'Route';
+    const label = l => r.grid ? `Pass ${l.pass}` : `Leg ${l.i + 1}`;
+    const desc = `Covered ${st.items.length - st.misses.length} of ${st.items.length} ${r.grid ? 'passes' : 'legs'} (${Math.round(st.cov.fraction * 100)}% of length).` +
+      (st.misses.length ? ' Not fully covered: ' + st.misses.map(m => `${label(m.l)} ${Math.round(m.f * 100)}%`).join(', ') + '.' : '') +
+      (run.gaps.length ? ` Tracking gaps: ${run.gaps.length} (${fmtDuration(st.gapMs / 1000)}).` : '');
+    const out = ['<?xml version="1.0" encoding="UTF-8"?>',
+      '<gpx version="1.1" creator="Sidescan Navigate" xmlns="http://www.topografix.com/GPX/1/1">',
+      `  <metadata><name>${xmlEsc(name)} run</name><desc>${xmlEsc(desc)}</desc><time>${iso(run.startedAt)}</time></metadata>`,
+      `  <rte><name>${xmlEsc(name)}</name>`];
+    r.points.forEach(p => out.push(`    <rtept lat="${p.lat.toFixed(7)}" lon="${p.lon.toFixed(7)}">${p.name ? `<name>${xmlEsc(p.name)}</name>` : ''}</rtept>`));
+    out.push('  </rte>', `  <trk><name>${xmlEsc(name)} track</name><desc>${xmlEsc(desc)}</desc>`, '    <trkseg>');
+    run.track.forEach((p, i) => {
+      if (i && p[4] - run.track[i - 1][4] > 20000) out.push('    </trkseg>', '    <trkseg>');
+      out.push(`      <trkpt lat="${p[1].toFixed(6)}" lon="${p[2].toFixed(6)}"><time>${iso(p[0])}</time><hdop>${(p[3] / 5).toFixed(1)}</hdop></trkpt>`);
+    });
+    out.push('    </trkseg>', '  </trk>');
+    // Covered stretches as their own track, so they can be shown in a different colour.
+    out.push(`  <trk><name>${xmlEsc(name)} covered</name>`);
+    run.nav.cover.forEach((list, i) => list.forEach(([c0, c1]) => {
+      if (c1 - c0 < 1) return;
+      const a = N.pointOn(r, i, c0), b = N.pointOn(r, i, c1);
+      out.push(`    <trkseg><trkpt lat="${a.lat.toFixed(7)}" lon="${a.lon.toFixed(7)}"/><trkpt lat="${b.lat.toFixed(7)}" lon="${b.lon.toFixed(7)}"/></trkseg>`);
+    }));
+    out.push('  </trk>', '</gpx>', '');
+    const d = new Date(run.startedAt), pad = n => String(n).padStart(2, '0');
+    const base = (name.replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'route') +
+      `-track-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.gpx`;
+    return { name: base, text: out.join('\n') };
+  }
+  $('sum-save').addEventListener('click', () => {
+    const g = trackGpx();
+    const url = URL.createObjectURL(new Blob([g.text], { type: 'application/gpx+xml' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = g.name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    status('sum-status', `Saved ${g.name}.`, 'ok');
+  });
+  $('sum-share').addEventListener('click', async () => {
+    const g = trackGpx();
+    try { await navigator.share({ files: [new File([g.text], g.name, { type: 'application/gpx+xml' })], title: g.name }); status('sum-status', 'Shared.', 'ok'); }
+    catch (e) { if (e && e.name !== 'AbortError') status('sum-status', 'Sharing failed on this device. Use Save track instead.', 'err'); }
+  });
+  $('sum-resume').addEventListener('click', () => {
+    const run = app.run;
+    delete run.endedAt;
+    begin(run.nav.leg, 0, run);
+  });
+  $('sum-new').addEventListener('click', () => {
+    app.nav = null; app.res = null; app.run = null;
+    showPanel('choose');
+    syncStart(); syncResume();
+    renderMap(false);
+  });
+
+  // ---------- Sound alerts ----------
+  // Off by default for each new run. Beeps: off the line (repeats while off), end of a leg,
+  // end of the route, GPS lost. Phones that support it also vibrate.
+  let audio = null, alertCount = 0, offSince = 0, lastOffBeep = 0, gpsLostBeeped = false;
+  function setSound(on) {
+    if (app.run) app.run.sound = on;
+    $('nav-sound').setAttribute('aria-pressed', String(on));
+    $('nav-sound').textContent = on ? 'Sound on' : 'Sound off';
+  }
+  $('nav-sound').addEventListener('click', () => {
+    const on = $('nav-sound').getAttribute('aria-pressed') !== 'true';
+    if (on) {
+      try {
+        // Play through the ringer switch on iPhones that support it.
+        if (navigator.audioSession) navigator.audioSession.type = 'playback';
+        audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+        audio.resume();
+      } catch (e) { audio = null; }
+      if (!audio) { toast("This browser can't play alert sounds."); return; }
+    }
+    setSound(on);
+    saveRun();
+    if (on) { beep([[880, 0.08]]); toast('Sound on: beeps when off the line and at the end of each leg.'); }
+  });
+  function beep(notes) {
+    if (!audio) return;
+    let t = audio.currentTime + 0.02;
+    notes.forEach(([freq, dur, gap]) => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'square'; o.frequency.value = freq;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(audio.destination); o.start(t); o.stop(t + dur + 0.02);
+      t += dur + (gap || 0.07);
+    });
+  }
+  const PATTERNS = {
+    off: { notes: [[440, 0.12], [440, 0.12]], vib: [120, 80, 120] },
+    leg: { notes: [[660, 0.09], [880, 0.09], [1175, 0.14]], vib: [60, 60, 60, 60, 160] },
+    done: { notes: [[880, 0.12], [1175, 0.12], [1568, 0.3]], vib: [300] },
+    gps: { notes: [[330, 0.5]], vib: [500] }
+  };
+  function alert(kind) {
+    if (!app.run || !app.run.sound) return;
+    alertCount++;
+    $('nav-sound').dataset.alerts = alertCount + ':' + kind;
+    beep(PATTERNS[kind].notes);
+    if (navigator.vibrate) try { navigator.vibrate(PATTERNS[kind].vib); } catch (e) { /* ignore */ }
+  }
+  // Off the line (on the leg itself, not while heading to it): beep, then every 8 s while it lasts.
+  function offLineAlert(res) {
+    const l = app.route.legs[res.leg];
+    const off = !res.finished && res.along >= 0 && res.along <= l.len && Math.abs(res.xte) > app.route.tol;
+    const now = Date.now();
+    if (!off) { offSince = 0; return; }
+    if (!offSince) offSince = now;
+    if (now - lastOffBeep >= 8000) { lastOffBeep = now; alert('off'); }
+  }
 
   // ---------- Settings ----------
   function syncSettings() {
@@ -431,10 +1077,12 @@ select.cand { width: 100%; }
 
   // ---------- GPS ----------
   const gpsState = { watch: null, error: '' };
+  const gpsStale = () => !app.fix || Date.now() - app.fix.rt > 10000;
   function gpsChip() {
     const chip = $('gps-chip'), f = app.fix;
     chip.classList.remove('good', 'fair', 'bad');
     if (gpsState.error) { chip.classList.add('bad'); $('gps-text').textContent = 'No GPS'; return; }
+    if (f && gpsStale()) { chip.classList.add('bad'); $('gps-text').textContent = `GPS lost ${fmtDuration((Date.now() - f.rt) / 1000)}`; return; }
     if (!f) { $('gps-text').textContent = gpsState.watch === null ? 'GPS off' : 'Finding GPS…'; return; }
     chip.classList.add(f.acc <= 10 ? 'good' : f.acc <= 30 ? 'fair' : 'bad');
     $('gps-text').textContent = `GPS ±${fmtShort(f.acc)}`;
@@ -445,11 +1093,12 @@ select.cand { width: 100%; }
     gpsState.error = '';
     gpsState.watch = navigator.geolocation.watchPosition(pos => {
       const c = pos.coords;
-      app.fix = { lat: c.latitude, lon: c.longitude, acc: c.accuracy || 0, heading: c.heading, speed: c.speed, t: pos.timestamp || Date.now() };
+      app.fix = { lat: c.latitude, lon: c.longitude, acc: c.accuracy || 0, heading: c.heading, speed: c.speed, t: pos.timestamp || Date.now(), rt: Date.now() };
       gpsState.error = '';
+      updateCourse(app.fix);
       gpsChip();
-      syncStart();
-      map.redrawOverlay();
+      if (app.mode === 'nav') onNavFix();
+      else { syncStart(); map.redrawOverlay(); }
     }, err => {
       gpsState.error = err && err.code === 1 ? 'Location is off for this site. Allow it in the browser settings.' : "Can't get a GPS position yet.";
       if (err && err.code === 1) { navigator.geolocation.clearWatch(gpsState.watch); gpsState.watch = null; }
@@ -458,6 +1107,14 @@ select.cand { width: 100%; }
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
     gpsChip();
   }
+
+  // Notice when fixes stop coming.
+  setInterval(() => {
+    if (app.fix && gpsStale()) {
+      gpsChip();
+      if (app.mode === 'nav') { showNav(); if (!gpsLostBeeped && !app.paused) { gpsLostBeeped = true; alert('gps'); } }
+    } else gpsLostBeeped = false;
+  }, 2000);
 
   // ---------- Start up ----------
   let resizeTimer = null;

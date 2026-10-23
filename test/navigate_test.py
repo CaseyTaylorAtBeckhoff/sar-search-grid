@@ -175,6 +175,152 @@ async def run_profile(b, name, opts):
     check(name, 'location denied: says how to fix it', await pg2.is_disabled('#start-near') and 'No GPS' in await pg2.inner_text('#gps-text'))
     await pg2.close()
 
+    # ---------- Live navigation (scripted boat) ----------
+    import math
+    def off(pt, north_m, east_m):
+        return (pt[0] + north_m / 111195.0, pt[1] + east_m / (111195.0 * math.cos(math.radians(pt[0]))))
+    async def fix(pt, acc=5, speed=1.5):
+        await pg.evaluate('([la, lo, a, v]) => window.__gps.fix(la, lo, a, undefined, null, v)', [pt[0], pt[1], acc, speed])
+    async def text(sel): return (await pg.inner_text(sel)).strip()
+    await pg.click('#use-grid'); await pg.wait_for_selector('#p-choose:not([hidden])')
+    p1a, p1b = PTS[0], PTS[1]            # pass 1 runs north
+    await fix(off(p1a, -60, 0))
+    await pg.click('#start-begin'); await pg.wait_for_selector('#p-nav:not([hidden])')
+    check(name, 'Beginning starts on pass 1', 'Pass 1' in await text('#nav-leg') and 'of 16' in await text('#nav-leg'), await text('#nav-leg'))
+    check(name, 'before the pass: heads to its start', 'start of pass 1' in await text('#steer-what') and 'head 000' in await text('#steer-what'), await text('#steer-what'))
+    L = (p1b[0] - p1a[0]) * 111195.0
+    await fix(off(p1a, 20, 0)); await fix(off(p1a, 40, 12))
+    check(name, 'right of the line: steer left with the distance', 'steer left' in await text('#steer-what') and await text('#steer-arrow') == '◀'
+          and 'off' in await pg.get_attribute('#steer', 'class') and await text('#steer-big') in ('39 ft', '40 ft'), await text('#steer-big'))
+    await fix(off(p1a, 60, -12))
+    check(name, 'left of the line: steer right', 'steer right' in await text('#steer-what') and await text('#steer-arrow') == '▶')
+    await fix(off(p1a, 80, 1))
+    check(name, 'on the line: says so', await text('#steer-big') == 'On line' and 'on' in (await pg.get_attribute('#steer', 'class')).split())
+    check(name, 'distance to the end of the pass', 'pass 1' in await text('#prog-label') and abs(int(re.sub(r'[^0-9]', '', await text('#prog-to'))) - (L - 80) / 0.3048) < 4,
+          await text('#prog-to'))
+    check(name, 'speed and course shown', await text('#f-speed') == '3.4 mph' and await text('#f-course') == '033°' and 'line 000°' in (await text('#f-line')).lower(),
+          await text('#f-speed') + ' ' + await text('#f-course') + ' ' + await text('#f-line'))
+    for d in range(100, int(L) + 4, 25): await fix(off(p1a, min(d, L + 2), 0.5))
+    check(name, 'end of pass 1 moves on to the turn', 'Turn' in await text('#nav-leg') and await pg.is_visible('#toast') and 'Pass 1 done' in await text('#toast'),
+          await text('#nav-leg'))
+    await pg.click('#nav-next')
+    check(name, 'Skip moves to the next pass', 'Pass 2' in await text('#nav-leg'))
+    await pg.click('#nav-prev'); await pg.click('#nav-prev')
+    check(name, 'Back returns to pass 1 and stays there at its end', 'Pass 1' in await text('#nav-leg'))
+    await fix(off(p1b, 0, 0.5))
+    check(name, '...even with the next GPS fix', 'Pass 1' in await text('#nav-leg'))
+    m7 = ((PTS[12][0] + PTS[13][0]) / 2, PTS[12][1])
+    await fix(off(m7, 0, 3))
+    await pg.click('#nav-near')
+    check(name, 'Nearest jumps to the pass the boat is on', 'Pass 7' in await text('#nav-leg') and 'Jumped to pass 7' in await text('#toast'))
+    await pg.wait_for_timeout(300)
+    async def boat_offset():
+        return await pg.evaluate("""() => { const svg = document.getElementById('nav-map'); const r = svg.getBoundingClientRect();
+            const b = svg.querySelector('.boat, .boat-arrow').getBoundingClientRect();
+            return [b.left + b.width / 2 - (r.left + r.width / 2), b.top + b.height / 2 - (r.top + r.height / 2)]; }""")
+    await fix(off(m7, 15, 2)); await pg.wait_for_timeout(350)
+    o = await boat_offset()
+    check(name, 'map follows the boat', abs(o[0]) < 6 and abs(o[1]) < 6, str(o))
+    mb = await pg.locator('#nav-map').bounding_box()
+    cx, cy = mb['x'] + mb['width'] / 2, mb['y'] + mb['height'] / 2
+    if opts.get('has_touch'):
+        cdp = await ctx.new_cdp_session(pg)
+        await cdp.send('Input.dispatchTouchEvent', {'type': 'touchStart', 'touchPoints': [{'x': cx, 'y': cy, 'id': 0}]})
+        for i in range(1, 6): await cdp.send('Input.dispatchTouchEvent', {'type': 'touchMove', 'touchPoints': [{'x': cx + i * 15, 'y': cy, 'id': 0}]})
+        await cdp.send('Input.dispatchTouchEvent', {'type': 'touchEnd', 'touchPoints': []})
+    else:
+        await pg.mouse.move(cx, cy); await pg.mouse.down(); await pg.mouse.move(cx + 75, cy, steps=5); await pg.mouse.up()
+    await pg.wait_for_timeout(350)
+    await fix(off(m7, 20, 2)); await pg.wait_for_timeout(350)
+    o = await boat_offset()
+    check(name, 'moving the map by hand stops following', await pg.get_attribute('#nav-follow', 'aria-pressed') == 'false' and abs(o[0]) > 40, str(o))
+    await pg.click('#nav-follow'); await pg.wait_for_timeout(350)
+    o = await boat_offset()
+    check(name, 'Follow brings the boat back to the middle', await pg.get_attribute('#nav-follow', 'aria-pressed') == 'true' and abs(o[0]) < 6 and abs(o[1]) < 6, str(o))
+    await pg.click('#nav-pause')
+    check(name, 'Pause and resume', await text('#nav-pause') == 'Resume')
+    await pg.click('#nav-pause')
+    check(name, 'screen-awake note shown', len(await text('#wake-status')) > 20)
+    check(name, 'navigation panel fits without sideways scroll', await pg.evaluate('document.documentElement.scrollWidth') <= vw['width'])
+    await pg.screenshot(path=str(OUT / f'navigating-{name}.png'))
+    await pg.click('#nav-stop')
+    check(name, 'End run shows the run summary', await pg.is_visible('#p-done'))
+    await pg.click('#sum-new')
+    check(name, 'Done returns to the start choices', await pg.is_visible('#p-choose'))
+
+    # ---------- Track, coverage and resume ----------
+    await fix(off(p1a, -10, 0))
+    await pg.click('#start-begin'); await pg.wait_for_selector('#p-nav:not([hidden])')
+    check(name, 'new run starts with nothing covered', (await text('#cov-val')).startswith('0 of 16'), await text('#cov-val'))
+    for d in range(0, int(L) + 4, 6): await fix(off(p1a, min(d, L + 2), 1.0))
+    check(name, 'running pass 1 on the line covers it', (await text('#cov-val')).startswith('1 of 16'), await text('#cov-val'))
+    check(name, 'covered stretch and track drawn on the map', await pg.locator('#nav-map .rt-cov').count() >= 1 and await pg.locator('#nav-map .trk').count() == 1)
+    await pg.wait_for_timeout(5600)      # saves are batched every 5 s
+    run = await pg.evaluate("JSON.parse(localStorage.getItem('sar-nav-run'))")
+    check(name, 'track saved on the phone as it goes', run and len(run['track']) > 30 and run['nav']['leg'] >= 1 and not run.get('endedAt'),
+          (len(run['track']) if run else None))
+    # Screen off for a minute: phones stop location for web pages; the gap is noted.
+    await pg.evaluate("""() => { Object.defineProperty(document, 'visibilityState', { get: () => 'hidden', configurable: true });
+        document.dispatchEvent(new Event('visibilitychange')); const real = Date.now; Date.now = () => real() + 75000;
+        Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+        document.dispatchEvent(new Event('visibilitychange')); }""")
+    check(name, 'screen-off gap noted when coming back', 'Tracking stopped for 1 min' in await text('#toast'), await text('#toast'))
+    run = await pg.evaluate("JSON.parse(localStorage.getItem('sar-nav-run'))")
+    check(name, 'gap saved with the run', any(g['why'] == 'screen' for g in run['gaps']))
+    # Reload mid-run: offered to resume where it left off.
+    await pg.reload(); await pg.wait_for_selector('#p-choose:not([hidden])')
+    check(name, 'after a reload the unfinished run is offered', await vis('#resume') and 'covered' in await text('#resume-desc'), await text('#resume-desc'))
+    await pg.evaluate("() => { const real = Date.now; Date.now = () => real() + 120000; }")   # the phone was away for 2 min
+    await pg.click('#resume-go'); await pg.wait_for_selector('#p-nav:not([hidden])')
+    check(name, 'resuming keeps the leg and coverage', (await text('#cov-val')).startswith('1 of 16') and 'Pass 1' not in await text('#nav-leg'),
+          await text('#nav-leg') + ' / ' + await text('#cov-val'))
+    await fix(off(PTS[2], 5, 0))
+    await pg.evaluate("window.dispatchEvent(new Event('pagehide'))")
+    run = await pg.evaluate("JSON.parse(localStorage.getItem('sar-nav-run'))")
+    check(name, 'time away while reloading counted as a gap', any(g['why'] == 'closed' for g in run['gaps']), json.dumps(run['gaps']))
+
+    # ---------- Sound alerts ----------
+    check(name, 'sound starts off for a run', await pg.get_attribute('#nav-sound', 'aria-pressed') == 'false')
+    await pg.click('#nav-sound')
+    check(name, 'sound can be turned on', await pg.get_attribute('#nav-sound', 'aria-pressed') == 'true' and await text('#nav-sound') == 'Sound on')
+    p2a, p2b = PTS[2], PTS[3]          # pass 2 runs south
+    await pg.click('#nav-near'); await fix(off(p2a, -20, 0.5))
+    await fix(off(p2a, -26, 15))
+    check(name, 'drifting off the line beeps', (await pg.get_attribute('#nav-sound', 'data-alerts') or '').endswith(':off'),
+          await pg.get_attribute('#nav-sound', 'data-alerts'))
+    L2 = (p2a[0] - p2b[0]) * 111195.0
+    for d in range(30, int(L2) + 4, 30): await fix(off(p2a, -min(d, L2 + 2), 0.5))
+    check(name, 'end of a pass beeps', (await pg.get_attribute('#nav-sound', 'data-alerts') or '').endswith(':leg'),
+          await pg.get_attribute('#nav-sound', 'data-alerts'))
+
+    # ---------- Summary and export ----------
+    await pg.click('#nav-stop')
+    check(name, 'summary: passes covered and what was missed', await vis('#p-done') and (await text('#sum-cov')).startswith('2 of 16')
+          and await pg.locator('#sum-miss li').count() == 1 and 'Passes 3–16' in await text('#sum-miss'), await text('#sum-cov') + ' / ' + await text('#sum-miss'))
+    check(name, 'summary map shows the whole route with coverage and track', await pg.locator('#nav-map .rt-cov').count() >= 2
+          and await pg.locator('#nav-map .trk').count() == 1 and await pg.locator('#nav-map .rt-active').count() == 0)
+    await pg.screenshot(path=str(OUT / f'summary-{name}.png'))
+    check(name, 'summary: distance and gaps', await text('#sum-dist') != '–' and (await text('#sum-gaps')).startswith(('2', '3')), await text('#sum-gaps'))
+    async with pg.expect_download() as dl:
+        await pg.click('#sum-save')
+    d = await dl.value
+    path = WORK / f'track-{name}.gpx'
+    await d.save_as(str(path))
+    gpx = path.read_text()
+    import subprocess
+    trk = subprocess.run(['gpsbabel', '-t', '-i', 'gpx', '-f', str(path), '-o', 'unicsv', '-F', '-'], capture_output=True, text=True)
+    rte = subprocess.run(['gpsbabel', '-r', '-i', 'gpx', '-f', str(path), '-o', 'unicsv', '-F', '-'], capture_output=True, text=True)
+    check(name, 'track GPX saves with a clear name', re.match(r'^Hit3-track-\d{8}-\d{4}\.gpx$', d.suggested_filename) is not None, d.suggested_filename)
+    check(name, 'GPX has the route, the track and the covered parts (GPSBabel reads it)', trk.returncode == 0 and rte.returncode == 0
+          and len(rte.stdout.strip().splitlines()) - 1 == 32 and len(trk.stdout.strip().splitlines()) > 40
+          and '<name>Hit3 covered</name>' in gpx and 'Covered 2 of 16 passes' in gpx,
+          f'route {len(rte.stdout.splitlines())} track {len(trk.stdout.splitlines())} {trk.stderr[:120]}')
+    check(name, 'track split where tracking stopped', gpx.count('<trkseg>') >= 3)
+    await pg.click('#sum-resume')
+    check(name, 'Keep going returns to navigating', await vis('#p-nav') and (await text('#cov-val')).startswith('2 of 16'))
+    await pg.click('#nav-stop'); await pg.click('#sum-new')
+    check(name, 'an ended run is not offered again', await vis('#p-choose') and not await vis('#resume'))
+
     await pg.screenshot(path=str(OUT / f'navigate-{name}.png'))
     check(name, 'no script errors', not errs, str(errs[:3]))
     await ctx.close()

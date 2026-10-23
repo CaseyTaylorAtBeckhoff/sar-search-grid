@@ -166,6 +166,31 @@ function zip(files) {
   d = drive(route, nav, 0, 0, { offset: route.tol * 3 });
   ok(d.finished && nav.coverage().fraction < 0.05, `3x tolerance off the line: route still followed, ${(nav.coverage().fraction * 100).toFixed(1)}% counted (only where turns cross a pass)`);
 
+  // Choosing a leg by hand: being at its end does not skip past it until the boat comes back along it.
+  nav = N.createNavigator(route); nav.start(0, 0);
+  const endOf0 = N.pointOn(route, 0, route.legs[0].len - 2);
+  const near0 = N.pointOn(route, 0, route.legs[0].len - 20);
+  let res = nav.update({ lat: near0.lat, lon: near0.lon, t: 0 });
+  res = nav.update({ lat: N.pointOn(route, 0, route.legs[0].len).lat, lon: N.pointOn(route, 0, route.legs[0].len).lon, t: 1000 });
+  ok(res.leg === 1, `reaching the end of pass 1 moves on to the turn (leg ${res.leg})`);
+  nav.setLeg(0);
+  res = nav.update({ lat: endOf0.lat, lon: endOf0.lon, t: 2000 });
+  ok(res.leg === 0 && !nav.state.armed, 'Back to pass 1 while sitting at its end: stays on pass 1');
+  const mid0 = N.pointOn(route, 0, route.legs[0].len / 2);
+  nav.update({ lat: mid0.lat, lon: mid0.lon, t: 3000 });
+  res = nav.update({ lat: endOf0.lat, lon: endOf0.lon, t: 4000 });
+  ok(res.leg === 1, 'after running pass 1 again, its end moves on as usual');
+
+  // At a corner the turn and the pass are equally near: joining picks the pass.
+  const corner = { lat: grid[2].lat + dLat(4), lon: grid[2].lon };
+  ok(N.nearestToJoin(route, corner).leg === 2, `at the corner before pass 2, joining picks pass 2 (plain nearest: leg ${N.nearest(route, corner).leg})`);
+  ok(N.nearestToJoin(route, mid).leg === 0, 'in the middle of a pass, joining picks that pass');
+  // Set to a turn by hand while already running the next pass: carries on to that pass.
+  nav = N.createNavigator(route); nav.start(0, 0);
+  nav.setLeg(1);
+  res = nav.update({ lat: N.pointOn(route, 2, 15).lat, lon: N.pointOn(route, 2, 15).lon, t: 0 });
+  ok(res.leg === 2, `on pass 2 with the turn chosen by hand: moves on to pass 2 (leg ${res.leg})`);
+
   // Saved state survives a reload (JSON round trip).
   nav = N.createNavigator(route); nav.start(0, 0);
   for (let i = 0; i < 40; i++) { const p = N.pointOn(route, 0, i * 3); nav.update({ lat: p.lat, lon: p.lon, t: i * 1000 }); }

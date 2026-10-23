@@ -83,6 +83,21 @@
     return best;
   }
 
+  // Nearest leg for starting or re-joining: among legs about as close as the nearest one,
+  // prefer a pass over a turn (at a corner the boat is usually starting the pass).
+  function nearestToJoin(route, pos) {
+    const best = nearest(route, pos);
+    if (!best || route.legs[best.leg].isPass) return best;
+    const slack = Math.max(2, route.tol / 2);
+    let pick = best;
+    for (const i of [best.leg + 1, best.leg - 1]) {
+      if (i < 0 || i >= route.legs.length || !route.legs[i].isPass) continue;
+      const n = nearest(route, pos, i, i);
+      if (n.dist <= best.dist + slack && (pick === best || n.dist < pick.dist)) pick = n;
+    }
+    return pick;
+  }
+
   // Point on leg i at a distance along it.
   function pointOn(route, i, along) {
     const l = route.legs[i], t = Math.max(0, Math.min(l.len, along)) / l.len;
@@ -108,25 +123,40 @@
   // state (plain JSON, saved by the page): { leg, startLeg, startAlong, cover: [[ [a,b], ... ] per leg], last, finished }
   function createNavigator(route, saved) {
     const legs = route.legs;
-    const st = saved || { leg: 0, startLeg: 0, startAlong: 0, cover: legs.map(() => []), last: null, finished: false };
+    // armed: the boat has been seen before the end of the current leg. Auto-advance needs it,
+    // so choosing a leg by hand (Back, Skip, Nearest) never jumps straight past it.
+    const st = saved || { leg: 0, startLeg: 0, startAlong: 0, cover: legs.map(() => []), last: null, finished: false, armed: false };
     const arriveFor = l => Math.min(10, l.len * 0.4);
 
     function start(leg, along) {
       st.leg = Math.max(0, Math.min(legs.length - 1, leg));
       st.startLeg = st.leg; st.startAlong = Math.max(0, along || 0);
-      st.last = null; st.finished = false;
+      st.last = null; st.finished = false; st.armed = false;
     }
     function setLeg(leg) {
       st.leg = Math.max(0, Math.min(legs.length - 1, leg));
-      st.last = null; st.finished = false;
+      st.last = null; st.finished = false; st.armed = false;
+    }
+
+    // Where the boat is on the current leg, without changing anything (for display).
+    function peek(fix) {
+      const s = legState(route, st.leg, fix);
+      return { leg: st.leg, along: s.along, xte: s.xte, toEnd: Math.max(0, s.toEnd), len: s.len, onLine: Math.abs(s.xte) <= route.tol, advancedFrom: [], finished: st.finished };
     }
 
     // fix: {lat, lon, t (ms)}. Returns the current situation for the display.
     function update(fix) {
       let s = legState(route, st.leg, fix);
       const advancedFrom = [];
+      const thr = l => l.len - arriveFor(l);
+      if (s.along < thr(legs[st.leg])) st.armed = true;
+      // A leg chosen by hand that the boat is already past, with the boat running the next leg: move on.
+      if (!st.armed && s.along >= thr(legs[st.leg]) && st.leg < legs.length - 1) {
+        const nx = legState(route, st.leg + 1, fix);
+        if (nx.along >= arriveFor(legs[st.leg + 1]) && nx.along < nx.len && Math.abs(nx.xte) <= route.tol * 2) st.armed = true;
+      }
       // Move on when the end of the leg is reached (or passed); short turns can go by in one fix.
-      for (let n = 0; n < 4 && !st.finished && s.along >= legs[st.leg].len - arriveFor(legs[st.leg]); n++) {
+      for (let n = 0; n < 4 && !st.finished && st.armed && s.along >= thr(legs[st.leg]); n++) {
         record(fix, s);
         advancedFrom.push(st.leg);
         if (st.leg === legs.length - 1) { st.finished = true; break; }
@@ -159,10 +189,10 @@
       return { per, fraction: passLen ? done / passLen : 0, coveredM: done, passM: passLen };
     }
 
-    return { state: st, start, setLeg, update, coverage };
+    return { state: st, start, setLeg, update, peek, coverage };
   }
 
-  const api = { projector, buildRoute, detectGrid, legState, nearest, pointOn, addInterval, intervalsLength, createNavigator, bearingDeg };
+  const api = { projector, buildRoute, detectGrid, legState, nearest, nearestToJoin, pointOn, addInterval, intervalsLength, createNavigator, bearingDeg };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.NavCore = api;
 })(typeof window !== 'undefined' ? window : globalThis);

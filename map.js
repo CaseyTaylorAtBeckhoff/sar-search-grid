@@ -44,7 +44,8 @@
   // cfg: size() -> {W, H, mapH}; pad(toVb) -> {l, r, t, b}; zoomLimits(rendered) -> [kMin, kMax];
   //      draw(ctx) -> {defs, vp, fixed}; touch: 'twoFinger' (one finger scrolls the page) or
   //      'pointer' (one finger pans); dblclickZoom; maxTiles; maxFitMPerPx; controls {zin, zout, fit};
-  //      hint (element); credit(msg); imagery() -> bool; onTap(latlon); after(map)
+  //      hint (element); credit(msg); imagery() -> bool; onTap(latlon); after(map);
+  //      tileMargin: extra imagery loaded around the view (fraction of its size), for panTo
   function createMap(svg, cfg) {
     const m = { view: null, bounds: null, rendered: null, live: { s: 1, tx: 0, ty: 0 }, drawId: 0 };
     let commitTimer = null, pinch = null, drag = null, oneTouch = null, hintTimer = null;
@@ -100,8 +101,9 @@
         let n, x0, x1, y0, y1;
         for (;;) {
           n = Math.pow(2, z);
-          x0 = Math.floor(-ox / k * n / 256); x1 = Math.floor((W - ox) / k * n / 256);
-          y0 = Math.max(0, Math.floor(-oy / k * n / 256)); y1 = Math.min(n - 1, Math.floor((H - oy) / k * n / 256));
+          const mx = W * (cfg.tileMargin || 0), my = H * (cfg.tileMargin || 0);
+          x0 = Math.floor((-mx - ox) / k * n / 256); x1 = Math.floor((W + mx - ox) / k * n / 256);
+          y0 = Math.max(0, Math.floor((-my - oy) / k * n / 256)); y1 = Math.min(n - 1, Math.floor((H + my - oy) / k * n / 256));
           if ((x1 - x0 + 1) * (y1 - y0 + 1) <= (cfg.maxTiles || 48) || z <= 1) break;
           z--;
         }
@@ -201,6 +203,17 @@
       m.render(true);
     };
     m.fit = () => { clearTimeout(commitTimer); m.view = null; m.render(true); };
+    // Keep a moving point (the boat) in the middle by shifting the drawing. The map is only
+    // redrawn, with fresh imagery, once it has drifted a good way from where it was drawn.
+    m.panTo = ll => {
+      const r = m.rendered;
+      if (!r || pinch || drag) return;
+      const q = mercator(ll), s = m.live.s;
+      const tx = r.W / 2 - s * (r.ox + q.x * r.k), ty = r.mapH / 2 - s * (r.oy + q.y * r.k);
+      setLive(s, tx, ty);
+      const far = Math.abs(tx) > r.W * (cfg.tileMargin || 0) * 0.8 || Math.abs(ty) > r.H * (cfg.tileMargin || 0) * 0.8;
+      if (far || s !== 1) scheduleCommit(0);
+    };
 
     function applyLive() {
       const vp = svg.querySelector('.vp');
