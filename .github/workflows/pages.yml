@@ -41,11 +41,14 @@ jobs:
       - name: Grid matches foursided.py, .hwr matches GPSBabel
         run: node test/verify.js
 
+      - name: Route files (GPX, KML, KMZ) and navigation math
+        run: node test/nav-test.js
+
       - name: Build page
         run: |
           python build.py
           mkdir -p site
-          cp dist/index.html site/index.html
+          cp dist/index.html dist/navigate.html site/
 
       - name: Install headless browser
         run: |
@@ -54,6 +57,9 @@ jobs:
 
       - name: Browser checks (phones, tablet, desktop)
         run: python test/deploy_test.py
+
+      - name: Navigate page checks (phones, tablet, desktop)
+        run: python test/navigate_test.py
 
       - name: Keep screenshots
         if: always()

@@ -1,0 +1,479 @@
+<title>Sidescan Navigate</title>
+<meta name="description" content="Follow a search grid or any GPX / KML route with the phone's GPS: distance off the line, current pass, and coverage.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&family=Saira+Semi+Condensed:wght@600;700&display=swap">
+<style>
+/*__COMMON_CSS__*/
+</style>
+<style>
+/* Layout: a one-screen app. Phone: map on top, panel below it. Wide screens: map left, panel right.
+   The app sits in a fixed box so the page itself never scrolls while navigating. */
+.app {
+  position: fixed; inset: 0; display: grid; grid-template-rows: auto minmax(0, 1fr);
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: var(--bg);
+}
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px 12px; flex-wrap: wrap;
+  padding-block: 8px; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line); background: var(--surface);
+}
+.gps-chip {
+  font: 600 12px/1 var(--font-data); padding: 7px 10px; border-radius: 999px; border: 1px solid var(--line);
+  color: var(--muted); background: var(--sunken); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.gps-chip i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.gps-chip.good i { background: var(--ok); }
+.gps-chip.fair i { background: var(--warn); }
+.gps-chip.bad i { background: var(--bad); }
+@media (max-width: 480px) {
+  .topbar { flex-wrap: nowrap; padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px)); }
+  .topbar .appnav a { font-size: 13px; padding: 8px 10px; gap: 4px; }
+  .gps-chip { padding: 7px 8px; font-size: 11px; }
+}
+.main { display: grid; grid-template-rows: minmax(160px, 1fr) auto; min-height: 0; }
+@media (min-width: 900px) {
+  .main { grid-template-rows: none; grid-template-columns: minmax(0, 1fr) 400px; }
+}
+.mapbox { position: relative; min-height: 0; background: var(--water); }
+#nav-map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; background: var(--water); touch-action: none; }
+.mapbox .map-ctl { left: max(10px, env(safe-area-inset-left, 0px)); }
+.map-ctl button.follow { font: 600 11px/1 var(--font-body); }
+.map-ctl button.follow[aria-pressed="true"] { color: var(--accent); }
+.mapbox .credit {
+  position: absolute; right: max(8px, env(safe-area-inset-right, 0px)); bottom: 8px; padding: 4px 8px; min-height: 0;
+  background: var(--surface); border-radius: 6px; opacity: 0.9;
+}
+.mapbox .credit:empty { display: none; }
+.panel {
+  background: var(--surface); border-top: 1px solid var(--line); overflow-y: auto; max-height: 52vh;
+  padding-block: 14px 16px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; align-content: start; gap: 12px;
+}
+@media (min-width: 900px) {
+  .panel { border-top: 0; border-left: 1px solid var(--line); max-height: none; }
+}
+.panel h2 { font: 700 22px/1.1 var(--font-display); margin: 0; letter-spacing: 0.01em; }
+.panel h3 { font: 600 12px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 4px 0 0; }
+.panel p { margin: 0; }
+.panel .btns { display: grid; gap: 10px; }
+.panel button.primary, .panel button.secondary { width: 100%; }
+.route-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.route-head h2 { overflow-wrap: anywhere; min-width: 0; }
+.route-sum { color: var(--muted); font-size: 14px; }
+.startopts { display: grid; gap: 8px; }
+button.startopt {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; text-align: left; width: 100%;
+  background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; cursor: pointer; min-height: 56px;
+}
+button.startopt b { font: 600 16px/1.2 var(--font-body); }
+button.startopt span { grid-column: 1; font-size: 13px; color: var(--muted); }
+button.startopt::after { content: "›"; grid-column: 2; grid-row: 1 / span 2; font: 400 28px/1 var(--font-body); color: var(--accent); }
+button.startopt:hover:not(:disabled) { background: var(--sunken); }
+button.startopt:disabled { opacity: 0.5; cursor: not-allowed; }
+button.startopt.pick { border-color: var(--accent); }
+.settings { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+select.cand { width: 100%; }
+.drop-hint { border: 2px dashed var(--line); border-radius: 10px; padding: 12px; text-align: center; color: var(--muted); font-size: 13px; }
+.app.dragover .drop-hint { border-color: var(--accent); color: var(--accent); }
+.status.warn { color: var(--warn); }
+
+.map-svg .rt-halo { stroke: var(--image-halo); stroke-linecap: round; fill: none; opacity: 0; }
+#nav-map.sat .rt-halo { opacity: 1; }
+.map-svg .rt-pass { stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; fill: none; opacity: 0.75; }
+.map-svg .rt-turn { stroke: var(--turn); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+#nav-map.sat .rt-pass { stroke: var(--on-image); opacity: 0.9; }
+#nav-map.sat .rt-turn { stroke: var(--on-image); opacity: 0.8; }
+.map-svg .rt-sel { stroke: var(--accent); stroke-width: 5; stroke-linecap: round; fill: none; }
+.map-svg .rt-num { font: 600 12px var(--font-data); fill: var(--ink); text-anchor: middle; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+#nav-map.sat .rt-num { fill: var(--on-image); stroke: var(--image-halo); }
+.map-svg .rt-start { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.map-svg .rt-end { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
+.map-svg .boat-acc { fill: #2f7de1; fill-opacity: 0.14; stroke: #2f7de1; stroke-opacity: 0.45; }
+.map-svg .boat { fill: #2f7de1; stroke: #ffffff; stroke-width: 2.5; }
+.map-svg .near-link { stroke: #2f7de1; stroke-width: 2; stroke-dasharray: 3 4; fill: none; }
+.map-svg .near-pt { fill: var(--surface); stroke: #2f7de1; stroke-width: 2.5; }
+</style>
+
+<div class="app" id="app">
+  <div class="topbar">
+    <nav class="appnav" aria-label="App sections">
+      <a href="./">Build grid</a>
+      <a href="navigate.html" aria-current="page">Navigate <span class="beta">Beta</span></a>
+    </nav>
+    <span class="gps-chip" id="gps-chip" role="status" aria-live="polite"><i></i><span id="gps-text">GPS off</span></span>
+  </div>
+
+  <div class="main">
+    <div class="mapbox">
+      <svg id="nav-map" class="map-svg" role="img" aria-label="Route map"></svg>
+      <div class="map-ctl" id="nav-ctl" role="group" aria-label="Map controls">
+        <button type="button" id="nav-zin" aria-label="Zoom in" title="Zoom in">+</button>
+        <button type="button" id="nav-zout" aria-label="Zoom out" title="Zoom out">&minus;</button>
+        <button type="button" id="nav-fit" class="fit" aria-label="Fit the route" title="Fit the route">Fit</button>
+      </div>
+      <div class="credit" id="nav-credit"></div>
+    </div>
+
+    <aside class="panel" id="panel">
+      <!-- No route yet -->
+      <section id="p-setup" class="btns" aria-labelledby="h-setup">
+        <h2 id="h-setup">Follow a route</h2>
+        <p class="hint">Open a GPX, KML or KMZ file (from CalTopo, Google Earth, Garmin or another team), or use the grid you built.</p>
+        <button type="button" class="primary" id="open-file">Open route file<small>GPX, KML or KMZ</small></button>
+        <button type="button" class="secondary" id="use-grid" hidden>Use grid from Build grid<small id="use-grid-desc"></small></button>
+        <p class="drop-hint" id="drop-hint">On a computer you can also drop the file here.</p>
+        <p class="hint">Got the file by email or text? Save it to your phone's Files first, then open it here.</p>
+        <div class="status" id="load-status" role="status" aria-live="polite"></div>
+      </section>
+
+      <!-- Route loaded: choose where to start -->
+      <section id="p-choose" hidden aria-labelledby="r-name">
+        <div class="btns">
+          <div class="route-head"><h2 id="r-name"></h2><button type="button" class="link" id="change-route">Change</button></div>
+          <p class="route-sum" id="r-sum"></p>
+          <div class="note info" id="r-note" hidden></div>
+          <div id="cand-wrap" hidden>
+            <label class="lbl" for="r-cand">Lines in this file</label>
+            <select id="r-cand" class="cand"></select>
+          </div>
+          <h3>Where to start</h3>
+          <div class="startopts">
+            <button type="button" class="startopt" id="start-near" disabled><b>Nearest point to the boat</b><span id="near-desc">Waiting for GPS…</span></button>
+            <button type="button" class="startopt" id="start-begin"><b>Beginning</b><span id="begin-desc"></span></button>
+            <button type="button" class="startopt" id="start-sel" disabled><b id="sel-title">A pass you tap</b><span id="sel-desc">Tap a pass on the map to choose it.</span></button>
+          </div>
+          <div class="status" id="start-status" role="status" aria-live="polite"></div>
+          <h3>Settings</h3>
+          <div class="settings">
+            <div><label class="lbl" for="tol">On the line within</label><input type="number" id="tol" min="1" step="1" inputmode="numeric"></div>
+            <div><label class="lbl" for="units">Units</label><select id="units"><option value="ft">feet</option><option value="m">metres</option></select></div>
+          </div>
+          <p class="hint" id="tol-hint"></p>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+<input type="file" id="file-in" hidden>
+
+<script>
+/*__MAP__*/
+</script>
+<script>
+/*__ROUTE_IO__*/
+</script>
+<script>
+/*__NAV_CORE__*/
+</script>
+<script>
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const IO = window.RouteIO, N = window.NavCore, M = window.SarMap;
+  const FT = 0.3048;
+
+  // ---------- Saved state ----------
+  // sar-nav-v1: { route: {name, points, source, format, note, kind}, settings: {units, tolM} }
+  const KEY = 'sar-nav-v1';
+  const load = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+  const store = load(KEY) || {};
+  const builderState = load('sar-grid-v1') || {};
+  const settings = Object.assign({ units: builderState.units || 'ft', tolM: null }, store.settings || {});
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify({ route: app.routeData, settings })); } catch (e) { /* storage full or blocked */ }
+  }
+
+  const app = {
+    routeData: null,       // what was loaded (kept so a reload comes back to it)
+    candidates: null,      // all lines in the loaded file
+    route: null,           // NavCore route model
+    fix: null,             // latest GPS fix {lat, lon, acc, heading, speed, t}
+    nearest: null,         // nearest point on the route to the fix
+    selLeg: null           // leg chosen by tapping the map
+  };
+
+  // ---------- Formatting ----------
+  const unitM = () => settings.units === 'm' ? 1 : FT;
+  function fmtDist(m) {
+    if (settings.units === 'm') return m >= 1000 ? (m / 1000).toFixed(2) + ' km' : Math.round(m) + ' m';
+    const ft = m / FT;
+    return ft >= 5280 ? (ft / 5280).toFixed(2) + ' mi' : Math.round(ft).toLocaleString() + ' ft';
+  }
+  const fmtShort = m => settings.units === 'm' ? Math.round(m) + ' m' : Math.round(m / FT) + ' ft';
+  function legLabel(route, i) {
+    const l = route.legs[i];
+    if (route.grid) {
+      if (l.isPass) return `Pass ${l.pass}`;
+      const prev = route.legs[i - 1];
+      return prev && prev.isPass ? `Turn after pass ${prev.pass}` : 'Run-in to pass 1';
+    }
+    return `Leg ${i + 1}`;
+  }
+  function status(id, msg, kind) { const s = $(id); s.textContent = msg || ''; s.className = 'status' + (kind ? ' ' + kind : ''); }
+
+  // ---------- Map ----------
+  function drawNav(ctx) {
+    const { S } = ctx, f = n => n.toFixed(1);
+    const r = app.route;
+    let vp = '';
+    if (!r) return { vp: '' };
+    const xy = r.points.map(S);
+    // Halos then lines so the route reads on imagery.
+    let halos = '', lines = '', nums = '';
+    r.legs.forEach(l => {
+      const a = xy[l.from], b = xy[l.from + 1];
+      const seg = `x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"`;
+      halos += `<line class="rt-halo" stroke-width="${l.isPass ? 6 : 4}" ${seg}/>`;
+      lines += `<line class="${l.isPass ? 'rt-pass' : 'rt-turn'}" ${seg}/>`;
+      // Pass numbers at the start of each pass when there is room.
+      if (r.grid && l.isPass && l.len / ctx.mPerPx > 60) {
+        const t = Math.min(0.15, 24 / (l.len / ctx.mPerPx));
+        nums += `<text class="rt-num" x="${f(a[0] + (b[0] - a[0]) * t)}" y="${f(a[1] + (b[1] - a[1]) * t + 4)}">${l.pass}</text>`;
+      }
+    });
+    vp += halos + lines;
+    if (app.selLeg !== null) {
+      const l = r.legs[app.selLeg], a = xy[l.from], b = xy[l.from + 1];
+      vp += `<line class="rt-sel" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
+    }
+    vp += nums;
+    const s0 = xy[0], e0 = xy[xy.length - 1];
+    vp += `<circle class="rt-start" cx="${f(s0[0])}" cy="${f(s0[1])}" r="7"/><rect class="rt-end" x="${f(e0[0] - 6)}" y="${f(e0[1] - 6)}" width="12" height="12"/>`;
+    // Boat, and a dashed link to the nearest point on the route.
+    if (app.fix) {
+      const b = S(app.fix);
+      if (app.nearest) {
+        const np = S(N.pointOn(r, app.nearest.leg, app.nearest.along));
+        vp += `<line class="near-link" x1="${f(b[0])}" y1="${f(b[1])}" x2="${f(np[0])}" y2="${f(np[1])}"/><circle class="near-pt" cx="${f(np[0])}" cy="${f(np[1])}" r="6"/>`;
+      }
+      vp += `<circle class="boat-acc" cx="${f(b[0])}" cy="${f(b[1])}" r="${f(Math.max(9, (app.fix.acc || 0) / ctx.mPerPx))}"/><circle class="boat" cx="${f(b[0])}" cy="${f(b[1])}" r="8"/>`;
+    }
+    return { vp, fixed: M.scaleBarSvg(ctx, settings.units) };
+  }
+
+  const svg = $('nav-map');
+  const map = M.createMap(svg, {
+    size: () => { const r = svg.getBoundingClientRect(); const W = Math.max(1, Math.round(r.width)), H = Math.max(1, Math.round(r.height)); return { W, H, mapH: H }; },
+    pad: () => ({ l: 64, r: 40, t: 40, b: 48 }),
+    zoomLimits: r => [r.W / 256, r.mPerK / 0.25],
+    maxFitMPerPx: 1.5,
+    touch: 'pointer', dblclickZoom: true, maxTiles: 96,
+    controls: { zin: $('nav-zin'), zout: $('nav-zout'), fit: $('nav-fit') },
+    credit: msg => { $('nav-credit').textContent = msg; },
+    imagery: () => !M.imageryBlocked(),
+    draw: drawNav,
+    onTap: ll => tapRoute(ll),
+    after: m => { $('nav-fit').disabled = !m.view; }
+  });
+  function fitBounds() {
+    const pts = app.route ? app.route.points.slice() : [];
+    if (app.fix && !app.route) pts.push(app.fix);
+    return pts;
+  }
+  function renderMap(keepView) {
+    map.setBounds(fitBounds(), keepView);
+    if (fitBounds().length) map.render(keepView); else map.clear('Open a route to see it here.');
+  }
+
+  // ---------- Loading a route ----------
+  function showPanel(name) {
+    ['p-setup', 'p-choose'].forEach(id => { $(id).hidden = id !== 'p-' + name; });
+  }
+
+  function setRoute(data) {
+    app.routeData = data;
+    app.route = N.buildRoute(data.points, { tol: settings.tolM || undefined });
+    app.selLeg = null;
+    app.nearest = null;
+    save();
+    const r = app.route;
+    $('r-name').textContent = data.name || 'Route';
+    const passM = r.legs.filter(l => l.isPass).reduce((s, l) => s + l.len, 0);
+    $('r-sum').textContent = r.grid
+      ? `${r.grid.passCount} passes · ${fmtDist(passM)} of passes · lanes ${fmtShort(r.grid.lane)} apart`
+      : `${r.legs.length} legs · ${fmtDist(r.total)} · ${r.points.length} points`;
+    const note = [data.format ? `From ${data.source === 'grid' ? 'Build grid' : data.format + ' file' + (data.fileName ? ' ' + data.fileName : '')}` : '', data.note].filter(Boolean).join('. ');
+    $('r-note').textContent = note;
+    $('r-note').hidden = !note;
+    $('begin-desc').textContent = legLabel(r, 0);
+    syncSettings();
+    syncStart();
+    showPanel('choose');
+    renderMap(false);
+    startGps();
+  }
+
+  function loadCandidates(res, fileName) {
+    app.candidates = res.candidates;
+    const sel = $('r-cand');
+    sel.innerHTML = res.candidates.map((c, i) => `<option value="${i}">${escapeHtml(c.name)} (${c.kind === 'routes' ? 'all routes joined' : c.kind}, ${c.points.length} points)</option>`).join('');
+    $('cand-wrap').hidden = res.candidates.length < 2;
+    sel.value = '0';
+    const c = res.candidates[0];
+    setRoute({ name: c.name, points: c.points, kind: c.kind, note: c.note || '', format: res.format, fileName, source: 'file' });
+  }
+  $('r-cand').addEventListener('change', e => {
+    const c = app.candidates[+e.target.value];
+    setRoute(Object.assign({}, app.routeData, { name: c.name, points: c.points, kind: c.kind, note: c.note || '' }));
+  });
+  const escapeHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  async function openFile(file) {
+    if (!file) return;
+    status('load-status', `Opening ${file.name}…`);
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const res = await IO.readRouteFile(file.name, bytes, IO.inflateRawBrowser);
+    if (res.error) { status('load-status', `${file.name}: ${res.error}`, 'err'); showPanel('setup'); return; }
+    status('load-status', '');
+    loadCandidates(res, file.name);
+  }
+  $('open-file').addEventListener('click', () => { $('file-in').value = ''; $('file-in').click(); });
+  $('file-in').addEventListener('change', e => openFile(e.target.files[0]));
+  $('change-route').addEventListener('click', () => { showPanel('setup'); syncGridOffer(); });
+
+  // Drop a file anywhere on the page (computers).
+  const appEl = $('app');
+  ['dragenter', 'dragover'].forEach(t => appEl.addEventListener(t, e => { e.preventDefault(); appEl.classList.add('dragover'); }));
+  ['dragleave', 'drop'].forEach(t => appEl.addEventListener(t, e => { e.preventDefault(); if (t === 'drop' || e.target === appEl) appEl.classList.remove('dragover'); }));
+  appEl.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) openFile(f); });
+
+  // The grid from the builder page (saved there on every change).
+  function gridOffer() {
+    const g = load('sar-grid-route');
+    return g && Array.isArray(g.points) && g.points.length >= 2 ? g : null;
+  }
+  function syncGridOffer() {
+    const g = gridOffer();
+    $('use-grid').hidden = !g;
+    if (g) {
+      const mins = Math.round((Date.now() - g.savedAt) / 60000);
+      const when = mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.round(mins / 60)} h ago` : `${Math.round(mins / 1440)} days ago`;
+      $('use-grid-desc').textContent = `"${g.name}" · ${g.passes} passes · changed ${when}`;
+    }
+  }
+  function useGrid() {
+    const g = gridOffer();
+    if (!g) return false;
+    app.candidates = null;
+    $('cand-wrap').hidden = true;
+    setRoute({ name: g.name, points: g.points, kind: 'route', format: 'grid', source: 'grid', note: '' });
+    return true;
+  }
+  $('use-grid').addEventListener('click', useGrid);
+
+  // ---------- Choosing where to start ----------
+  function syncStart() {
+    const r = app.route;
+    if (!r) return;
+    if (app.fix) {
+      app.nearest = N.nearest(r, app.fix);
+      $('start-near').disabled = false;
+      $('near-desc').textContent = `${legLabel(r, app.nearest.leg)} · ${fmtShort(app.nearest.dist)} from the boat`;
+    } else {
+      $('start-near').disabled = true;
+      $('near-desc').textContent = gpsState.error || 'Waiting for GPS…';
+    }
+    if (app.selLeg === null) {
+      $('start-sel').disabled = true;
+      $('sel-title').textContent = r.grid ? 'A pass you tap' : 'A leg you tap';
+      $('sel-desc').textContent = `Tap a ${r.grid ? 'pass' : 'leg'} on the map to choose it.`;
+      $('start-sel').classList.remove('pick');
+    } else {
+      $('start-sel').disabled = false;
+      $('sel-title').textContent = `Start of ${legLabel(r, app.selLeg).toLowerCase()}`;
+      $('sel-desc').textContent = 'Chosen on the map. Tap another to change it.';
+      $('start-sel').classList.add('pick');
+    }
+  }
+  // Tapping near a leg selects it; on a grid a tapped turn selects the pass after it.
+  function tapRoute(ll) {
+    const r = app.route;
+    if (!r || !map.rendered) return;
+    const n = N.nearest(r, ll);
+    const px = n.dist / (map.rendered.mPerK / (map.rendered.k * map.live.s));
+    if (px > 36) { app.selLeg = null; }
+    else {
+      let leg = n.leg;
+      if (r.grid && !r.legs[leg].isPass) leg = Math.min(r.legs.length - 1, leg + 1);
+      app.selLeg = leg;
+    }
+    syncStart();
+    map.redrawOverlay();
+  }
+
+  function begin(leg, along, how) {
+    // Live navigation arrives in the next section.
+    status('start-status', `Ready to start at ${legLabel(app.route, leg).toLowerCase()}${along > 1 ? `, ${fmtShort(along)} in` : ''} (${how}). Live navigation is coming in the next update.`, 'warn');
+  }
+  $('start-near').addEventListener('click', () => app.nearest && begin(app.nearest.leg, app.nearest.along, 'nearest point'));
+  $('start-begin').addEventListener('click', () => begin(0, 0, 'beginning'));
+  $('start-sel').addEventListener('click', () => app.selLeg !== null && begin(app.selLeg, 0, 'chosen on the map'));
+
+  // ---------- Settings ----------
+  function syncSettings() {
+    $('units').value = settings.units;
+    const r = app.route;
+    if (!r) return;
+    $('tol').value = Math.round(r.tol / unitM());
+    $('tol').setAttribute('aria-describedby', 'tol-hint');
+    $('tol-hint').textContent = `${settings.units === 'm' ? 'Metres' : 'Feet'} either side of the line. ` +
+      (settings.tolM ? 'Set by you.' : r.grid ? 'Default: a quarter of the lane spacing.' : 'Default: 25 ft.') +
+      ' Distance off the line beyond this shows as off course.';
+  }
+  $('units').addEventListener('change', e => { settings.units = e.target.value; save(); if (app.routeData) setRoute(app.routeData); });
+  $('tol').addEventListener('change', e => {
+    const v = parseFloat(e.target.value);
+    settings.tolM = isFinite(v) && v > 0 ? v * unitM() : null;
+    save();
+    if (app.routeData) { app.route.tol = settings.tolM || N.buildRoute(app.routeData.points).tol; syncSettings(); }
+  });
+
+  // ---------- GPS ----------
+  const gpsState = { watch: null, error: '' };
+  function gpsChip() {
+    const chip = $('gps-chip'), f = app.fix;
+    chip.classList.remove('good', 'fair', 'bad');
+    if (gpsState.error) { chip.classList.add('bad'); $('gps-text').textContent = 'No GPS'; return; }
+    if (!f) { $('gps-text').textContent = gpsState.watch === null ? 'GPS off' : 'Finding GPS…'; return; }
+    chip.classList.add(f.acc <= 10 ? 'good' : f.acc <= 30 ? 'fair' : 'bad');
+    $('gps-text').textContent = `GPS ±${fmtShort(f.acc)}`;
+  }
+  function startGps() {
+    if (gpsState.watch !== null) return;
+    if (!navigator.geolocation) { gpsState.error = "This device doesn't share its location."; gpsChip(); syncStart(); return; }
+    gpsState.error = '';
+    gpsState.watch = navigator.geolocation.watchPosition(pos => {
+      const c = pos.coords;
+      app.fix = { lat: c.latitude, lon: c.longitude, acc: c.accuracy || 0, heading: c.heading, speed: c.speed, t: pos.timestamp || Date.now() };
+      gpsState.error = '';
+      gpsChip();
+      syncStart();
+      map.redrawOverlay();
+    }, err => {
+      gpsState.error = err && err.code === 1 ? 'Location is off for this site. Allow it in the browser settings.' : "Can't get a GPS position yet.";
+      if (err && err.code === 1) { navigator.geolocation.clearWatch(gpsState.watch); gpsState.watch = null; }
+      gpsChip();
+      syncStart();
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+    gpsChip();
+  }
+
+  // ---------- Start up ----------
+  let resizeTimer = null;
+  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => map.rendered ? map.render(true) : renderMap(false), 250); });
+  window.addEventListener('online', () => map.rendered && map.render(true));
+
+  syncGridOffer();
+  showPanel('setup');
+  requestAnimationFrame(() => {
+    if (location.hash === '#grid' && useGrid()) {
+      history.replaceState(null, '', location.pathname);
+    } else if (store.route && Array.isArray(store.route.points) && store.route.points.length >= 2) {
+      setRoute(store.route);
+    } else {
+      renderMap(false);
+    }
+  });
+})();
+</script>
