@@ -61,6 +61,9 @@ jobs:
       - name: Navigate page checks (phones, tablet, desktop)
         run: python test/navigate_test.py
 
+      - name: 90-minute simulated run on a slowed phone
+        run: python test/longrun_test.py
+
       - name: Keep screenshots
         if: always()
         uses: actions/upload-artifact@v7
