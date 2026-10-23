@@ -40,9 +40,10 @@ Use a phone SD card reader with a full-size SD slot (USB-C, or Lightning for old
 - Waypoint names are cut to 11 characters and route names to 19.
 - HELIX units store up to 2,750 waypoints; the page warns past that.
 
-## Satellite preview
+## Map preview
 
-When there's internet, the preview shows USGS National Map aerial imagery (public domain, US coverage, no account needed). Without internet it falls back to a plain outline.
+- **Zoom and pan:** use the + / − buttons, or the mouse wheel and drag on a computer. On a phone or tablet, use two fingers (one finger still scrolls the page). **Fit** returns to the whole search area.
+- **Satellite imagery:** when there's internet, the preview shows USGS National Map aerial imagery (public domain, US coverage, no account needed). Without internet it falls back to a plain outline.
 
 ## Development
 
