@@ -1,0 +1,848 @@
+<title>Sidescan Search Grid</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Build lawnmower search grids for sidescan boat crews and export them for Humminbird (.hwr) and other chartplotters (.gpx).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Public+Sans:wght@400;500;600;700&family=Saira+Semi+Condensed:wght@600;700&display=swap">
+<style>
+/* Layout: phone-first single column of numbered setup steps; on wide screens the
+   chart preview and export panel sit beside the inputs and stay in view. */
+:root {
+  --bg: #eaf0f4;          /* chart-room slate */
+  --surface: #ffffff;
+  --sunken: #f3f7fa;
+  --ink: #0d1b29;         /* deep navy */
+  --muted: #546577;
+  --line: #c9d5df;
+  --water: #d6e7f2;       /* chart water tint */
+  --water-edge: #8fb3cc;
+  --accent: #c2410c;      /* SAR orange, darkened for contrast on white */
+  --accent-soft: #fde5d8;
+  --on-accent: #ffffff;
+  --turn: #7c8fa1;
+  --ok: #17704a;
+  --warn: #9a5300;
+  --warn-soft: #fff1dc;
+  --bad: #b42318;
+  --on-image: #ffffff;    /* lines drawn over satellite imagery, either theme */
+  --image-halo: rgba(0, 0, 0, 0.55);
+  --font-display: "Saira Semi Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #08131d; --surface: #0f1f2e; --sunken: #0b1925; --ink: #e4ecf3; --muted: #93a6b8;
+    --line: #22384c; --water: #0f2c45; --water-edge: #2f5c80; --accent: #ff6b2c; --accent-soft: #3a1a0b;
+    --on-accent: #1a0900; --turn: #6f8597; --ok: #4cc38a; --warn: #f0a640; --warn-soft: #2e2008; --bad: #ff7b6e;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #08131d; --surface: #0f1f2e; --sunken: #0b1925; --ink: #e4ecf3; --muted: #93a6b8;
+  --line: #22384c; --water: #0f2c45; --water-edge: #2f5c80; --accent: #ff6b2c; --accent-soft: #3a1a0b;
+  --on-accent: #1a0900; --turn: #6f8597; --ok: #4cc38a; --warn: #f0a640; --warn-soft: #2e2008; --bad: #ff7b6e;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font: 400 15px/1.5 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 20px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px 24px; }
+header.top h1 {
+  font: 700 clamp(28px, 6vw, 40px)/1 var(--font-display); letter-spacing: 0.01em; margin: 0;
+  text-wrap: balance;
+}
+header.top h1 span { color: var(--accent); }
+header.top p { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+.formats { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  font: 500 12px/1 var(--font-data); padding: 6px 8px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted); background: var(--surface);
+}
+
+.layout { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); align-items: start; }
+@media (min-width: 920px) {
+  .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
+  .side { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+}
+.col { display: grid; gap: 16px; min-width: 0; }
+
+section.step {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  padding: 16px; display: grid; gap: 14px; min-width: 0;
+}
+.step-head { display: flex; align-items: baseline; gap: 10px; }
+.step-num {
+  font: 700 13px/1 var(--font-data); color: var(--accent); border: 1.5px solid var(--accent);
+  border-radius: 6px; padding: 4px 6px; flex: none;
+}
+.step-head h2 { font: 700 20px/1.1 var(--font-display); margin: 0; letter-spacing: 0.01em; }
+.hint { color: var(--muted); font-size: 13px; margin: 0; }
+
+label.lbl, .lbl {
+  display: block; font-size: 12px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); margin-bottom: 5px;
+}
+input[type="text"], input[type="number"], select {
+  width: 100%; min-width: 0; font: 500 15px/1.3 var(--font-data); color: var(--ink);
+  background: var(--sunken); border: 1px solid var(--line); border-radius: 8px; padding: 10px 11px;
+}
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+input.invalid { border-color: var(--bad); }
+
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--sunken); }
+.seg button {
+  font: 600 13px/1 var(--font-body); color: var(--muted); background: transparent; border: 0;
+  padding: 10px 12px; cursor: pointer; min-height: 40px;
+}
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+.corners { display: grid; gap: 10px; }
+.corner { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 10px; align-items: center; }
+.corner .tag {
+  width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 15px/1 var(--font-data); border: 1.5px solid var(--water-edge); color: var(--ink); background: var(--water);
+}
+.corner.is-start .tag { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.fmt {
+  display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; margin: 0;
+  padding: 10px 12px; background: var(--sunken); border: 1px solid var(--line); border-radius: 8px;
+}
+.fmt dt { font: 600 12px/1.5 var(--font-body); color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.fmt dd { margin: 0; font: 400 13px/1.5 var(--font-data); color: var(--ink); overflow-wrap: anywhere; }
+@media (max-width: 400px) { .fmt { grid-template-columns: minmax(0, 1fr); gap: 0; } .fmt dd + dt { margin-top: 6px; } }
+.corner .read { grid-column: 2; font: 400 12px/1.3 var(--font-data); color: var(--muted); min-height: 1.3em; }
+.corner .read.err { color: var(--bad); font-family: var(--font-body); }
+
+.row { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.inline { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: end; }
+.inline > div { min-width: 0; }
+
+.preview { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.preview svg { display: block; width: 100%; height: auto; background: var(--water); }
+.preview-bar { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 10px 14px; font-size: 13px; border-top: 1px solid var(--line); }
+.preview-bar a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.preview-bar a:hover { text-decoration: underline; }
+.bar-actions { display: flex; align-items: center; gap: 14px; }
+button.toggle {
+  font: 600 13px/1 var(--font-body); color: var(--ink); background: var(--sunken); cursor: pointer;
+  border: 1px solid var(--line); border-radius: 999px; padding: 9px 14px; min-height: 38px;
+}
+button.toggle[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.credit { font-size: 11px; color: var(--muted); padding: 0 14px 10px; min-height: 1.4em; }
+.credit:empty { display: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 5px; border-top: 3px solid var(--accent); }
+.legend i.turn { border-top: 2px dashed var(--turn); }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.stat { background: var(--surface); padding: 10px 12px; min-width: 0; }
+.stat:last-child:nth-child(odd) { grid-column: span 2; }
+@media (min-width: 560px) {
+  /* Five figures: three across, then two wider ones, with no empty cells. */
+  .stats { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .stats > .stat { grid-column: span 2; }
+  .stats > .stat:nth-child(n+4) { grid-column: span 3; }
+}
+.stat b { display: block; font: 600 20px/1.15 var(--font-data); font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12px; color: var(--muted); }
+
+.notes { display: grid; gap: 8px; }
+.note { font-size: 13px; padding: 9px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--ink); border-left: 3px solid var(--warn); }
+.note.info { background: var(--sunken); border-left-color: var(--water-edge); }
+
+.btns { display: flex; flex-wrap: wrap; gap: 10px; }
+button.primary, button.secondary {
+  font: 600 15px/1.1 var(--font-body); border-radius: 8px; padding: 12px 16px; cursor: pointer; min-height: 46px;
+  display: inline-flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
+}
+button.primary { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent); }
+button.secondary { background: var(--surface); color: var(--ink); border: 1px solid var(--line); }
+button.primary small, button.secondary small { font: 400 12px/1.2 var(--font-body); opacity: 0.85; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.link { background: none; border: 0; color: var(--accent); font: 600 13px var(--font-body); cursor: pointer; padding: 4px 0; }
+.status { font-size: 13px; min-height: 1.4em; color: var(--muted); }
+.status.ok { color: var(--ok); }
+.status.err { color: var(--bad); }
+.names { font: 400 13px/1.5 var(--font-data); color: var(--muted); overflow-wrap: anywhere; }
+.names b { color: var(--ink); font-weight: 500; }
+
+details.wps summary { cursor: pointer; font-weight: 600; font-size: 14px; }
+.table-wrap { overflow-x: auto; margin-top: 10px; max-height: 320px; overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font: 400 13px/1.4 var(--font-data); font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 10px; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th { position: sticky; top: 0; background: var(--sunken); font: 600 11px/1.2 var(--font-body); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+td.rt { color: var(--muted); }
+
+footer.foot { color: var(--muted); font-size: 12px; display: grid; gap: 6px; max-width: 80ch; }
+footer.foot p { margin: 0; }
+
+#chart .area { fill: var(--surface); fill-opacity: 0.55; stroke: var(--water-edge); stroke-width: 1.5; stroke-dasharray: 6 4; }
+#chart .halo { stroke: var(--image-halo); stroke-linecap: round; fill: none; opacity: 0; }
+#chart .panel { fill: var(--surface); fill-opacity: 0.88; }
+#chart.sat .halo { opacity: 1; }
+#chart.sat .area { fill: none; stroke: var(--on-image); stroke-width: 2; }
+#chart.sat .turn { stroke: var(--on-image); }
+#chart.sat .lbl-on-map { fill: var(--on-image); paint-order: stroke; stroke: var(--image-halo); stroke-width: 3px; }
+#chart .turn { stroke: var(--turn); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+#chart .pass { stroke: var(--accent); fill: none; stroke-linecap: round; }
+#chart .arrowhead { fill: var(--accent); }
+#chart .brk { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+#chart .tag { fill: var(--surface); stroke: var(--water-edge); stroke-width: 1.5; }
+#chart .tag.on { fill: var(--accent); stroke: var(--accent); }
+#chart .tagt { font: 700 16px var(--font-data); fill: var(--ink); text-anchor: middle; }
+#chart .tagt.on { fill: var(--on-accent); }
+#chart .start { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+#chart .end { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
+#chart .ink { fill: var(--ink); }
+#chart .surf { fill: var(--surface); stroke: var(--ink); stroke-width: 1; }
+#chart .t { font: 400 14px var(--font-data); fill: var(--ink); }
+#chart .t.b { font-weight: 600; }
+#chart .lg { font: 400 15px var(--font-body); fill: var(--ink); }
+#chart .empty { font: 400 16px var(--font-body); fill: var(--muted); text-anchor: middle; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Sidescan <span>Search Grid</span></h1>
+      <p>Lay out lawnmower passes over a search area, check the spacing, and save a file for the boat's sonar.</p>
+    </div>
+    <div class="formats" aria-label="Supported formats">
+      <span class="chip">.HWR HELIX · 1100</span>
+      <span class="chip">.GPX all others</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="col">
+      <!-- 1. Area -->
+      <section class="step" aria-labelledby="h-area">
+        <div class="step-head"><span class="step-num">1</span><h2 id="h-area">Search area</h2></div>
+        <div class="seg" role="group" aria-label="How to define the area">
+          <button type="button" id="mode-corners" data-mode="corners">Four corners</button>
+          <button type="button" id="mode-center" data-mode="center">Center &amp; size</button>
+        </div>
+
+        <div id="panel-corners" class="corners">
+          <p class="hint" id="corner-hint">Enter corners in order around the area. Paste four lines into corner 1 to fill all four.</p>
+          <dl class="fmt" aria-label="Accepted coordinate formats">
+            <dt>Decimal</dt><dd>41.36506, -112.07352</dd>
+            <dt>Deg + min</dt><dd>N41 21.904 W112 04.411</dd>
+            <dt>Deg min sec</dt><dd>41 21 54.2 N 112 04 24.7 W</dd>
+          </dl>
+          <p class="hint">Spaces work in place of ° ′ ″, and N/S/E/W or a minus sign both work. The line under each box shows how it was read.</p>
+          <div class="corner" data-i="0"><span class="tag">1</span><input type="text" id="c0" placeholder="Latitude, longitude" inputmode="text" autocomplete="off" spellcheck="false" aria-label="Corner 1"><div class="read" id="r0"></div></div>
+          <div class="corner" data-i="1"><span class="tag">2</span><input type="text" id="c1" placeholder="Latitude, longitude" inputmode="text" autocomplete="off" spellcheck="false" aria-label="Corner 2"><div class="read" id="r1"></div></div>
+          <div class="corner" data-i="2"><span class="tag">3</span><input type="text" id="c2" placeholder="Latitude, longitude" inputmode="text" autocomplete="off" spellcheck="false" aria-label="Corner 3"><div class="read" id="r2"></div></div>
+          <div class="corner" data-i="3"><span class="tag">4</span><input type="text" id="c3" placeholder="Latitude, longitude" inputmode="text" autocomplete="off" spellcheck="false" aria-label="Corner 4"><div class="read" id="r3"></div></div>
+          <p class="hint" id="example-note">Prefilled with the corners from foursided.py.</p>
+        </div>
+
+        <div id="panel-center" hidden>
+          <div class="corners">
+            <div>
+              <label class="lbl" for="center">Center point</label>
+              <input type="text" id="center" placeholder="Latitude, longitude" autocomplete="off" spellcheck="false">
+              <div class="read names" id="center-read"></div>
+            </div>
+            <div class="row">
+              <div><label class="lbl" for="len">Length <span class="u-dist">ft</span></label><input type="number" id="len" min="1" step="any" inputmode="decimal"></div>
+              <div><label class="lbl" for="wid">Width <span class="u-dist">ft</span></label><input type="number" id="wid" min="1" step="any" inputmode="decimal"></div>
+              <div><label class="lbl" for="hdg">Heading °T</label><input type="number" id="hdg" min="0" max="360" step="any" inputmode="decimal"></div>
+              <div><label class="lbl" for="units-center">Units</label>
+                <select id="units-center" class="units-sel"><option value="ft">feet</option><option value="m">metres</option></select></div>
+            </div>
+            <p class="hint">The center point takes the same formats as the corners: decimal, degrees + minutes, or degrees minutes seconds. Length runs along the heading. Corner 1 is back-left, looking along the heading.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. Passes -->
+      <section class="step" aria-labelledby="h-passes">
+        <div class="step-head"><span class="step-num">2</span><h2 id="h-passes">Passes</h2></div>
+        <div class="inline">
+          <div>
+            <span class="lbl">Set by</span>
+            <div class="seg" role="group" aria-label="Set passes by">
+              <button type="button" id="pm-count" data-pm="count">Number of passes</button>
+              <button type="button" id="pm-spacing" data-pm="spacing">Lane spacing</button>
+            </div>
+          </div>
+          <div id="wrap-count" style="width:120px"><label class="lbl" for="passes">Passes</label><input type="number" id="passes" min="2" max="300" step="1" inputmode="numeric"></div>
+          <div id="wrap-spacing" style="width:140px" hidden><label class="lbl" for="spacing">Spacing <span class="u-dist">ft</span></label><input type="number" id="spacing" min="1" step="any" inputmode="decimal"></div>
+          <div id="wrap-units" style="width:110px" hidden><label class="lbl" for="units">Units</label>
+            <select id="units" class="units-sel"><option value="ft">feet</option><option value="m">metres</option></select></div>
+        </div>
+        <p class="hint" id="spacing-tip" hidden>Lane spacing is usually about twice the sonar's range per side, less your overlap. A 100 ft range with 10% overlap gives about 180 ft lanes.</p>
+
+        <div class="inline">
+          <div>
+            <span class="lbl">Passes run</span>
+            <div class="seg" role="group" aria-label="Pass direction">
+              <button type="button" id="ax-A" data-axis="A">Along 1–2</button>
+              <button type="button" id="ax-B" data-axis="B">Along 2–3</button>
+            </div>
+          </div>
+          <div>
+            <span class="lbl">Start at corner</span>
+            <div class="seg" role="group" aria-label="Start corner">
+              <button type="button" data-start="0">1</button>
+              <button type="button" data-start="1">2</button>
+              <button type="button" data-start="2">3</button>
+              <button type="button" data-start="3">4</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Names -->
+      <section class="step" aria-labelledby="h-names">
+        <div class="step-head"><span class="step-num">3</span><h2 id="h-names">Names on the unit</h2></div>
+        <div class="row">
+          <div><label class="lbl" for="rname">Route name</label><input type="text" id="rname" maxlength="40" autocomplete="off"></div>
+          <div><label class="lbl" for="prefix">Waypoint prefix</label><input type="text" id="prefix" maxlength="10" autocomplete="off"></div>
+        </div>
+        <p class="hint">Give each grid its own prefix so waypoints from different grids don't collide on the unit.</p>
+        <div class="names" id="names-preview"></div>
+      </section>
+    </div>
+
+    <div class="col side">
+      <div class="preview">
+        <svg id="chart" viewBox="0 0 640 460" role="img" aria-label="Search grid preview"></svg>
+        <div class="preview-bar">
+          <div class="legend"><span><i></i>Pass</span><span><i class="turn"></i>Turn</span></div>
+          <div class="bar-actions">
+            <button type="button" class="toggle" id="sat-toggle" aria-pressed="true">Satellite: on</button>
+            <a id="map-link" href="#" target="_blank" rel="noopener">Google Maps ↗</a>
+          </div>
+        </div>
+        <div class="credit" id="sat-credit" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+      <div class="notes" id="notes"></div>
+
+      <section class="step" aria-labelledby="h-save">
+        <div class="step-head"><span class="step-num">4</span><h2 id="h-save">Save for the boat</h2></div>
+        <div class="btns" id="btns-direct" hidden>
+          <button type="button" class="primary" id="save-hwr">Save .hwr<small>Humminbird HELIX &amp; 1100 series</small></button>
+          <button type="button" class="secondary" id="save-gpx">Save .gpx<small>SOLIX, APEX, Garmin, Lowrance, Raymarine, Furuno</small></button>
+          <button type="button" class="secondary" id="share" hidden>Share files…<small>Save to Files or an SD card</small></button>
+        </div>
+        <div class="btns" id="btns-zip" hidden>
+          <button type="button" class="primary" id="save-zip">Save files (.zip)<small>.hwr for HELIX &amp; 1100 · .gpx for everything else</small></button>
+        </div>
+        <p class="hint" id="zip-hint" hidden>This preview saves a .zip. Open it, then copy the .hwr or .gpx file to the SD card.</p>
+        <div class="status" id="save-status" role="status" aria-live="polite"></div>
+        <details class="wps">
+          <summary id="wp-summary">Waypoint list</summary>
+          <div class="btns" style="margin-top:8px"><button type="button" class="link" id="copy-csv">Copy as CSV</button></div>
+          <div class="table-wrap"><table><thead><tr><th>#</th><th>Name</th><th>Latitude</th><th>Longitude</th><th>Route</th></tr></thead><tbody id="wp-body"></tbody></table></div>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <footer class="foot">
+    <p>Test a new file on one unit before a search: back up the unit's waypoints first, then import. Use a FAT32 card of 32 GB or less, kept separate from chart cards.</p>
+    <p>Humminbird routes hold 50 points, so larger grids are split into consecutive routes that join end to end. Waypoint names are cut to 11 characters and route names to 19.</p>
+    <p>.hwr writer adapted from GPSBabel (GPL v2+). Grid layout from foursided.py.</p>
+  </footer>
+</div>
+
+<script>
+/*__GRID_CORE__*/
+</script>
+<script>
+/*__UTIL__*/
+</script>
+<script>
+(function () {
+  'use strict';
+  const G = window.GridCore, U = window.GridUtil;
+  const $ = id => document.getElementById(id);
+  const FT = 0.3048;
+
+  const EXAMPLE = {
+    mode: 'corners',
+    corners: ['41.3650583, -112.073523', '41.36964, -112.073523', '41.36964, -112.078575', '41.3650583, -112.078575'],
+    center: '41.36735, -112.07605', length: 1670, width: 1385, heading: 0,
+    units: 'ft', passMode: 'count', passes: 16, spacing: 90,
+    axis: 'A', start: 0, routeName: 'Hit3', prefix: 'H3-', imagery: true, example: true
+  };
+  const KEY = 'sar-grid-v1';
+  let state;
+  try { state = Object.assign({}, EXAMPLE, JSON.parse(localStorage.getItem(KEY) || 'null') || {}); }
+  catch (e) { state = Object.assign({}, EXAMPLE); }
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } };
+
+  // ---------- Inputs ----------
+  const cornerInputs = [0, 1, 2, 3].map(i => $('c' + i));
+  cornerInputs.forEach((el, i) => {
+    el.value = state.corners[i] || '';
+    el.addEventListener('input', () => { state.corners[i] = el.value; state.example = false; update(); });
+  });
+  cornerInputs[0].addEventListener('paste', e => {
+    const text = (e.clipboardData || window.clipboardData).getData('text');
+    const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (lines.length >= 4) {
+      e.preventDefault();
+      lines.slice(0, 4).forEach((l, i) => { cornerInputs[i].value = l; state.corners[i] = l; });
+      state.example = false; update();
+    }
+  });
+
+  const bindNum = (id, key, conv) => {
+    const el = $(id);
+    el.value = state[key];
+    el.addEventListener('input', () => { const v = parseFloat(el.value); if (isFinite(v)) { state[key] = conv ? conv(v) : v; update(); } });
+  };
+  bindNum('len', 'length'); bindNum('wid', 'width'); bindNum('hdg', 'heading');
+  bindNum('passes', 'passes'); bindNum('spacing', 'spacing');
+  $('center').value = state.center;
+  $('center').addEventListener('input', e => { state.center = e.target.value; update(); });
+  $('rname').value = state.routeName;
+  $('rname').addEventListener('input', e => { state.routeName = e.target.value; update(); });
+  $('prefix').value = state.prefix;
+  $('prefix').addEventListener('input', e => { state.prefix = e.target.value; update(); });
+  // Two unit pickers (lane spacing, center & size) share one setting.
+  const unitSelects = document.querySelectorAll('.units-sel');
+  unitSelects.forEach(sel => {
+    sel.value = state.units;
+    sel.addEventListener('change', e => {
+      if (e.target.value === state.units) return;
+      // Keep the same physical distances when switching units.
+      const f = e.target.value === 'm' ? FT : 1 / FT;
+      ['length', 'width', 'spacing'].forEach(k => { state[k] = round(state[k] * f, 1); });
+      $('len').value = state.length; $('wid').value = state.width; $('spacing').value = state.spacing;
+      state.units = e.target.value;
+      unitSelects.forEach(s => { s.value = state.units; });
+      update();
+    });
+  });
+
+  document.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => { state.mode = b.dataset.mode; update(); }));
+  document.querySelectorAll('[data-pm]').forEach(b => b.addEventListener('click', () => {
+    if (b.dataset.pm === 'spacing' && state.passMode === 'count' && last.ordered) {
+      const sp = G.laneSpacing(last.ordered, state.passes);
+      state.spacing = round(Math.max(sp.start, sp.end) / unitM(), 0); $('spacing').value = state.spacing;
+    }
+    if (b.dataset.pm === 'count' && state.passMode === 'spacing' && last.passes) { state.passes = last.passes; $('passes').value = state.passes; }
+    state.passMode = b.dataset.pm; update();
+  }));
+  document.querySelectorAll('[data-axis]').forEach(b => b.addEventListener('click', () => { state.axis = b.dataset.axis; update(); }));
+  document.querySelectorAll('[data-start]').forEach(b => b.addEventListener('click', () => { state.start = +b.dataset.start; update(); }));
+  $('sat-toggle').addEventListener('click', () => { state.imagery = state.imagery === false; update(); });
+  // Redraw when the preview changes size (imagery zoom depends on it) or the connection comes back.
+  let resizeTimer = null;
+  window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(update, 300); });
+  window.addEventListener('online', () => update());
+
+  // ---------- Helpers ----------
+  function round(v, d) { const k = Math.pow(10, d); return Math.round(v * k) / k; }
+  function unitM() { return state.units === 'm' ? 1 : FT; }
+  function fmtDist(m) {
+    if (state.units === 'm') return m >= 1000 ? (m / 1000).toFixed(2) + ' km' : Math.round(m) + ' m';
+    const ft = m / FT;
+    return ft >= 5280 ? (ft / 5280).toFixed(2) + ' mi' : Math.round(ft).toLocaleString() + ' ft';
+  }
+  function fmtLane(m) { return state.units === 'm' ? (m < 100 ? m.toFixed(1) : Math.round(m)) + ' m' : Math.round(m / FT) + ' ft'; }
+  function slug(s) { return (s || 'grid').trim().replace(/[^A-Za-z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'grid'; }
+  function setPressed(sel, attr, val) { document.querySelectorAll(sel).forEach(b => b.setAttribute('aria-pressed', String(b.dataset[attr] === String(val)))); }
+
+  let last = {};
+
+  // ---------- Main update ----------
+  function update() {
+    save();
+    setPressed('[data-mode]', 'mode', state.mode);
+    setPressed('[data-pm]', 'pm', state.passMode);
+    setPressed('[data-axis]', 'axis', state.axis);
+    setPressed('[data-start]', 'start', state.start);
+    $('panel-corners').hidden = state.mode !== 'corners';
+    $('panel-center').hidden = state.mode !== 'center';
+    $('wrap-count').hidden = state.passMode !== 'count';
+    $('wrap-spacing').hidden = state.passMode !== 'spacing';
+    $('spacing-tip').hidden = state.passMode !== 'spacing';
+    $('wrap-units').hidden = state.passMode !== 'spacing';
+    $('example-note').hidden = !state.example;
+    document.querySelectorAll('.u-dist').forEach(s => { s.textContent = state.units; });
+    $('ax-A').textContent = state.mode === 'center' ? 'Along heading' : 'Along 1–2';
+    $('ax-B').textContent = state.mode === 'center' ? 'Across heading' : 'Along 2–3';
+    document.querySelectorAll('.corner').forEach(c => c.classList.toggle('is-start', +c.dataset.i === state.start));
+
+    const notes = [];
+    let base = null;
+
+    if (state.mode === 'corners') {
+      const parsed = cornerInputs.map((el, i) => {
+        const p = U.parseCoord(el.value), r = $('r' + i);
+        el.classList.toggle('invalid', !!p.error);
+        r.classList.toggle('err', !!p.error);
+        r.textContent = p.error ? p.error : p.empty ? '' : U.fmtPos(p);
+        return p;
+      });
+      if (parsed.every(p => !p.error && !p.empty)) base = parsed;
+    } else {
+      const c = U.parseCoord($('center').value);
+      $('center').classList.toggle('invalid', !!c.error);
+      $('center-read').textContent = c.error ? c.error : c.empty ? '' : U.fmtPos(c);
+      $('center-read').classList.toggle('err', !!c.error);
+      if (!c.error && !c.empty && state.length > 0 && state.width > 0)
+        base = U.boxFromCenter(c, state.length * unitM(), state.width * unitM(), state.heading || 0);
+    }
+
+    if (!base) {
+      last = {};
+      renderEmpty(state.mode === 'corners' ? 'Enter all four corners to see the grid.' : 'Enter a center point, length and width.');
+      return;
+    }
+
+    const ordered = U.orient(base, state.start, state.axis);
+    let passes = state.passMode === 'count'
+      ? Math.round(state.passes)
+      : (state.spacing > 0 ? G.passesForSpacing(ordered, state.spacing * unitM()) : 0);
+    if (!(passes >= 2)) { last = {}; renderEmpty('Use at least 2 passes.'); return; }
+    if (passes > 300) { notes.push(['warn', `That's ${passes} passes. Capped at 300; check the spacing or area.`]); passes = 300; }
+
+    const pts = G.buildGrid(ordered, passes);
+    const sp = G.laneSpacing(ordered, passes);
+    const total = G.pathLength(pts);
+    const passLen = (G.distM(ordered[0], ordered[1]) + G.distM(ordered[3], ordered[2])) / 2;
+    const hwr = G.toHWR(pts, { routeName: state.routeName, prefix: state.prefix });
+    last = { base, ordered, passes, pts, names: hwr.names, routes: hwr.routes };
+
+    // Sanity checks
+    if (state.mode === 'corners' && U.cornersCrossed(base))
+      notes.push(['warn', 'The sides cross each other. Enter the corners in order going around the area.']);
+    const sides = [0, 1, 2, 3].map(i => G.distM(base[i], base[(i + 1) % 4]));
+    if (Math.max(...sides) > 10000) notes.push(['warn', `One side is ${fmtDist(Math.max(...sides))} long. Check for a typo in a corner.`]);
+    if (Math.abs(sp.start - sp.end) / Math.max(sp.start, sp.end) > 0.15)
+      notes.push(['info', `Lanes fan out: ${fmtLane(sp.start)} at the start side, ${fmtLane(sp.end)} at the far side.`]);
+    if (hwr.routes.length > 1)
+      notes.push(['info', `Humminbird routes hold 50 points, so this grid is split into ${hwr.routes.length} routes that join end to end.`]);
+    if (pts.length > 2750) notes.push(['warn', 'HELIX units store up to 2,750 waypoints. This grid has more.']);
+
+    // Stats
+    const lane = Math.abs(sp.start - sp.end) < 0.5 * unitM() ? fmtLane(sp.start)
+      : fmtLane(Math.min(sp.start, sp.end)).replace(/ .*/, '') + '–' + fmtLane(Math.max(sp.start, sp.end));
+    $('stats').innerHTML = [
+      [passes, 'passes'],
+      [lane, 'lane spacing'],
+      [fmtDist(passLen), 'pass length'],
+      [fmtDist(total), 'total run'],
+      [pts.length, hwr.routes.length > 1 ? `waypoints · ${hwr.routes.length} routes` : 'waypoints · 1 route']
+    ].map(([b, s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
+
+    $('notes').innerHTML = notes.map(([k, t]) => `<div class="note ${k === 'info' ? 'info' : ''}">${t}</div>`).join('');
+
+    // Names
+    const rn = hwr.routes.map(r => `<b>${esc(r.name)}</b> (${r.points} pts)`).join(', ');
+    $('names-preview').innerHTML = `Route ${rn}<br>Waypoints <b>${esc(hwr.names[0])}</b> … <b>${esc(hwr.names[hwr.names.length - 1])}</b>`;
+
+    // Waypoint table
+    const routeOf = [];
+    G.splitRoutes(pts.length, G.LIMITS.RTE_POINTS).forEach((idx, r) => idx.forEach(i => { if (routeOf[i] === undefined) routeOf[i] = r; }));
+    $('wp-summary').textContent = `Waypoint list (${pts.length})`;
+    $('wp-body').innerHTML = pts.map((p, i) =>
+      `<tr><td class="rt">${i + 1}</td><td>${esc(hwr.names[i])}</td><td>${U.fmtDDM(p.lat, true)}</td><td>${U.fmtDDM(p.lon, false)}</td><td class="rt">${esc(hwr.routes[routeOf[i]].name)}</td></tr>`).join('');
+
+    const ctr = { lat: base.reduce((s, c) => s + c.lat, 0) / 4, lon: base.reduce((s, c) => s + c.lon, 0) / 4 };
+    $('map-link').href = `https://www.google.com/maps/search/?api=1&query=${ctr.lat.toFixed(6)},${ctr.lon.toFixed(6)}`;
+    $('map-link').hidden = false;
+
+    drawChart(base, ordered, pts, hwr);
+    setSaveEnabled(true);
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+  function renderEmpty(msg) {
+    $('stats').innerHTML = '';
+    $('notes').innerHTML = `<div class="note info">${msg}</div>`;
+    $('names-preview').textContent = '';
+    $('wp-body').innerHTML = '';
+    $('wp-summary').textContent = 'Waypoint list';
+    $('map-link').hidden = true;
+    drawId++;
+    $('chart').classList.remove('sat');
+    $('chart').innerHTML = `<text x="320" y="235" class="empty">${esc(msg)}</text>`;
+    $('sat-credit').textContent = '';
+    setSaveEnabled(false);
+  }
+
+  // ---------- Chart ----------
+  // USGS National Map orthoimagery: public domain, no key, US coverage. Cached to zoom 16.
+  const IMAGERY = {
+    url: (z, y, x) => `https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/${z}/${y}/${x}`,
+    maxZoom: 16,
+    fallbackLevels: 3,
+    credit: 'Imagery: USDA, USGS The National Map'
+  };
+  // The claude.ai preview frame blocks images from other sites; the deployed page does not.
+  const imageryBlocked = () => framed && hasClaude;
+  let drawId = 0;
+
+  function mercator(p) {
+    const r = p.lat * Math.PI / 180;
+    return { x: (p.lon + 180) / 360 * 256, y: (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * 256 };
+  }
+
+  function setCredit(msg) { $('sat-credit').textContent = msg; }
+
+  function drawChart(base, ordered, pts, hwr) {
+    const id = ++drawId;
+    const W = 640, H = 460, pad = 46;
+    const all = base.map(mercator);
+    const minX = Math.min(...all.map(p => p.x)), maxX = Math.max(...all.map(p => p.x));
+    const minY = Math.min(...all.map(p => p.y)), maxY = Math.max(...all.map(p => p.y));
+    const k = Math.min((W - 2 * pad) / Math.max(1e-9, maxX - minX), (H - 2 * pad - 20) / Math.max(1e-9, maxY - minY));
+    const ox = W / 2 - (minX + maxX) / 2 * k, oy = (H - 20) / 2 - (minY + maxY) / 2 * k;
+    const S = p => { const m = mercator(p); return [ox + m.x * k, oy + m.y * k]; };
+    const f = n => n.toFixed(1);
+    const lat0 = base.reduce((s, c) => s + c.lat, 0) / 4;
+    const mPerUnit = 2 * Math.PI * 6378137 * Math.cos(lat0 * Math.PI / 180) / 256 / k;
+
+    let svg = `<defs><marker id="arr" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path class="arrowhead" d="M0,1 L9,5 L0,9 z"/></marker></defs>`;
+
+    // Satellite tiles (Web Mercator, 256 px). Each tile sits in its own <svg> so a
+    // missing tile can fall back to a zoomed-in crop of its parent.
+    const wantSat = state.imagery !== false && !imageryBlocked();
+    let tileCount = 0;
+    if (wantSat && navigator.onLine !== false) {
+      const cssPerUnit = ($('chart').getBoundingClientRect().width || W) / W;
+      const dpr = Math.min(3, window.devicePixelRatio || 1);
+      let z = Math.max(1, Math.min(IMAGERY.maxZoom, Math.round(Math.log2(k * cssPerUnit * dpr))));
+      let n, x0, x1, y0, y1;
+      for (;;) {
+        n = Math.pow(2, z);
+        x0 = Math.floor(-ox / k * n / 256); x1 = Math.floor((W - ox) / k * n / 256);
+        y0 = Math.max(0, Math.floor(-oy / k * n / 256)); y1 = Math.min(n - 1, Math.floor((H - oy) / k * n / 256));
+        if ((x1 - x0 + 1) * (y1 - y0 + 1) <= 48 || z <= 1) break;
+        z--;
+      }
+      const ts = 256 / n * k;
+      svg += '<g class="sat-tiles">';
+      for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+        const wx = ((tx % n) + n) % n;
+        svg += `<svg x="${f(ox + tx * ts)}" y="${f(oy + ty * ts)}" width="${(ts + 0.6).toFixed(2)}" height="${(ts + 0.6).toFixed(2)}" viewBox="0 0 256 256" preserveAspectRatio="none" data-z="${z}" data-x="${wx}" data-y="${ty}">` +
+          `<image width="256" height="256" preserveAspectRatio="none" href="${IMAGERY.url(z, ty, wx)}"/></svg>`;
+        tileCount++;
+      }
+      svg += '</g>';
+    }
+
+    // Area outline
+    svg += `<polygon class="area" points="${base.map(c => S(c).map(f).join(',')).join(' ')}"/>`;
+
+    // Turns, then passes on top, each over a halo that keeps them readable on imagery
+    const thick = pts.length > 80 ? 1.4 : 2.4;
+    let turns = '', passes = '', halos = '';
+    for (let i = 1; i + 1 < pts.length; i += 2) {
+      const a = S(pts[i]), b = S(pts[i + 1]);
+      halos += `<line class="halo" stroke-width="4" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
+      turns += `<line class="turn" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
+    }
+    for (let i = 0; i < pts.length; i += 2) {
+      const a = S(pts[i]), b = S(pts[i + 1]);
+      const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+      halos += `<line class="halo" stroke-width="${thick + 3}" x1="${f(a[0])}" y1="${f(a[1])}" x2="${f(b[0])}" y2="${f(b[1])}"/>`;
+      passes += `<path class="pass" stroke-width="${thick}" d="M${f(a[0])},${f(a[1])} L${f(mx)},${f(my)} L${f(b[0])},${f(b[1])}"${pts.length <= 120 ? ' marker-mid="url(#arr)"' : ''}/>`;
+    }
+    svg += halos + turns + passes;
+
+    // Route split points
+    let acc = 0;
+    hwr.routes.slice(0, -1).forEach((r, j) => {
+      acc += r.points - (j === 0 ? 0 : 1);
+      const p = S(pts[acc - 1]);
+      svg += `<circle class="brk" cx="${f(p[0])}" cy="${f(p[1])}" r="5"/>`;
+      svg += `<text class="t lbl-on-map" x="${f(p[0] + 8)}" y="${f(p[1] - 8)}">R${j + 2}</text>`;
+    });
+
+    // Corner tags
+    const cx = W / 2, cy = (H - 20) / 2;
+    base.forEach((c, i) => {
+      const [x, y] = S(c);
+      const dx = x - cx, dy = y - cy, d = Math.hypot(dx, dy) || 1;
+      const lx = x + dx / d * 24, ly = y + dy / d * 24;
+      const on = i === state.start ? ' on' : '';
+      svg += `<circle class="tag${on}" cx="${f(lx)}" cy="${f(ly)}" r="14"/>`;
+      svg += `<text class="tagt${on}" x="${f(lx)}" y="${f(ly + 5.5)}">${i + 1}</text>`;
+    });
+
+    // Start and end markers
+    const s0 = S(pts[0]), e0 = S(pts[pts.length - 1]);
+    svg += `<circle class="start" cx="${f(s0[0])}" cy="${f(s0[1])}" r="6"/>`;
+    svg += `<rect class="end" x="${f(e0[0] - 5)}" y="${f(e0[1] - 5)}" width="10" height="10"/>`;
+
+    // North arrow
+    svg += `<g transform="translate(${W - 32},34)"><rect class="panel" x="-20" y="-26" width="40" height="60" rx="6"/><path class="ink" d="M0,-18 L8,9 L0,3 L-8,9 z"/><text class="t b" y="26" text-anchor="middle">N</text></g>`;
+
+    // Scale bar (round length in display units)
+    const unit = unitM();
+    const targetUnits = 120 * mPerUnit / unit;
+    const mag = Math.pow(10, Math.floor(Math.log10(targetUnits)));
+    const nice = [1, 2, 5, 10].map(m => m * mag).reduce((best, v) => Math.abs(v - targetUnits) < Math.abs(best - targetUnits) ? v : best, mag);
+    const barPx = nice * unit / mPerUnit;
+    svg += `<g transform="translate(18,${H - 22})"><rect class="panel" x="-8" y="-24" width="${f(barPx + 16)}" height="38" rx="6"/>` +
+      `<rect class="ink" width="${f(barPx)}" height="5"/><rect class="surf" width="${f(barPx / 2)}" height="5"/>` +
+      `<text class="t" y="-8">0</text><text class="t" x="${f(barPx)}" y="-8" text-anchor="end">${nice.toLocaleString()} ${state.units}</text></g>`;
+
+    // Start / end legend
+    const multi = hwr.routes.length > 1;
+    const lgW = multi ? 252 : 128;
+    const lgX = W - lgW - 10;
+    svg += `<g transform="translate(${lgX},${H - 20})"><rect class="panel" x="-12" y="-19" width="${lgW}" height="30" rx="6"/>` +
+      `<circle class="start" cx="0" cy="-3" r="6"/><text class="lg" x="11" y="2">Start</text>` +
+      `<rect class="end" x="64" y="-9" width="12" height="12"/><text class="lg" x="82" y="2">End</text>` +
+      (multi ? `<circle class="brk" cx="132" cy="-3" r="6"/><text class="lg" x="143" y="2">Route break</text>` : '') + `</g>`;
+
+    const chart = $('chart');
+    chart.classList.remove('sat');
+    chart.innerHTML = svg;
+    chart.setAttribute('aria-label', `Search grid preview: ${last.passes} passes, starting at corner ${state.start + 1}`);
+
+    // Imagery status and per-tile fallback
+    $('sat-toggle').hidden = imageryBlocked();
+    $('sat-toggle').setAttribute('aria-pressed', String(state.imagery !== false));
+    $('sat-toggle').textContent = state.imagery !== false ? 'Satellite: on' : 'Satellite: off';
+    if (imageryBlocked()) { setCredit("Satellite imagery isn't available in this preview."); return; }
+    if (!wantSat) { setCredit(''); return; }
+    if (!tileCount) { setCredit('No satellite imagery: no internet connection.'); return; }
+    setCredit('Loading satellite imagery…');
+    let settled = 0, shown = 0;
+    const done = () => {
+      if (id !== drawId) return;
+      if (shown) setCredit(IMAGERY.credit);
+      else if (settled === tileCount) setCredit('No satellite imagery: offline or not available here.');
+    };
+    chart.querySelectorAll('.sat-tiles svg').forEach(box => {
+      const img = box.querySelector('image');
+      let depth = 0;
+      img.addEventListener('load', () => {
+        if (id !== drawId) return;
+        settled++; shown++;
+        chart.classList.add('sat');
+        done();
+      });
+      img.addEventListener('error', () => {
+        if (id !== drawId) return;
+        const z = +box.dataset.z, x = +box.dataset.x, y = +box.dataset.y;
+        depth++;
+        if (depth > IMAGERY.fallbackLevels || z - depth < 0) { box.remove(); settled++; done(); return; }
+        const m = Math.pow(2, depth), size = 256 / m;
+        box.setAttribute('viewBox', `${(x % m) * size} ${(y % m) * size} ${size} ${size}`);
+        img.setAttribute('href', IMAGERY.url(z - depth, y >> depth, x >> depth));
+      });
+    });
+  }
+
+  // ---------- Saving ----------
+  const framed = (() => { try { return window.top !== window.self; } catch (e) { return true; } })();
+  const hasClaude = !!(window.claude && typeof window.claude.use === 'function');
+  let downloads = null, saveMode = 'pending';
+
+  function files() {
+    const now = new Date();
+    const base = slug(state.routeName);
+    const hwr = G.toHWR(last.pts, { routeName: state.routeName, prefix: state.prefix, time: now });
+    const gpx = G.toGPX(last.pts, { routeName: state.routeName, names: hwr.names, time: now });
+    return { base, hwr: hwr.bytes, gpx };
+  }
+
+  function status(msg, kind) { const s = $('save-status'); s.textContent = msg || ''; s.className = 'status' + (kind ? ' ' + kind : ''); }
+
+  function setSaveEnabled(on) {
+    ['save-hwr', 'save-gpx', 'share', 'save-zip', 'copy-csv'].forEach(id => { $(id).disabled = !on || (id === 'save-zip' && saveMode !== 'zip'); });
+  }
+
+  function directDownload(name, data, type) {
+    const blob = new Blob([data], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    status(`Saved ${name}. Copy it to the SD card.`, 'ok');
+  }
+
+  $('save-hwr').addEventListener('click', () => { if (!last.pts) return; const f = files(); directDownload(f.base + '.hwr', f.hwr, 'application/octet-stream'); });
+  $('save-gpx').addEventListener('click', () => { if (!last.pts) return; const f = files(); directDownload(f.base + '.gpx', f.gpx, 'application/gpx+xml'); });
+  $('share').addEventListener('click', async () => {
+    if (!last.pts) return;
+    const f = files();
+    const list = [new File([f.hwr], f.base + '.hwr', { type: 'application/octet-stream' }), new File([f.gpx], f.base + '.gpx', { type: 'application/gpx+xml' })];
+    try { await navigator.share({ files: list, title: state.routeName }); status('Shared.', 'ok'); }
+    catch (e) { if (e && e.name !== 'AbortError') status('Sharing failed on this device. Use the Save buttons instead.', 'err'); }
+  });
+
+  $('save-zip').addEventListener('click', async () => {
+    if (!last.pts || !downloads) return;
+    const f = files();
+    const readme = `Search grid: ${state.routeName}\r\n${last.passes} passes, ${last.pts.length} waypoints, ${last.routes.length} route(s): ${last.routes.map(r => r.name).join(', ')}\r\n\r\n` +
+      `Humminbird HELIX and 1100 series: copy ${f.base}.hwr to the SD card, then import nav data on the unit.\r\n` +
+      `SOLIX, APEX, Garmin, Lowrance, Raymarine, Furuno: copy ${f.base}.gpx to the card and import it.\r\n`;
+    const zip = U.makeZip([{ name: f.base + '.hwr', data: f.hwr }, { name: f.base + '.gpx', data: f.gpx }, { name: 'README.txt', data: readme }]);
+    status('Waiting for you to confirm the save…');
+    try {
+      await downloads.save({ filename: f.base + '.zip', data: zip });
+      status(`Saved ${f.base}.zip. Open it and copy the .hwr or .gpx to the SD card.`, 'ok');
+    } catch (e) {
+      const code = e && e.code;
+      if (code === 'declined') status('Save cancelled.');
+      else if (code === 'rate_limited') status('A save prompt is already open. Finish that one first.', 'err');
+      else { status("Saving files isn't available in this view.", 'err'); $('save-zip').disabled = true; }
+    }
+  });
+
+  $('copy-csv').addEventListener('click', async () => {
+    if (!last.pts) return;
+    const csv = 'name,lat,lon\n' + last.pts.map((p, i) => `${last.names[i]},${p.lat.toFixed(7)},${p.lon.toFixed(7)}`).join('\n') + '\n';
+    try { await navigator.clipboard.writeText(csv); status('Waypoint list copied as CSV.', 'ok'); }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = csv; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (_) { /* ignore */ }
+      ta.remove();
+      status(ok ? 'Waypoint list copied as CSV.' : "Couldn't copy here. Open the waypoint list and select the rows instead.", ok ? 'ok' : 'err');
+    }
+  });
+
+  function showDirect() {
+    saveMode = 'direct';
+    $('btns-direct').hidden = false;
+    try {
+      const probe = new File(['x'], 'x.gpx', { type: 'application/gpx+xml' });
+      $('share').hidden = !(navigator.canShare && navigator.canShare({ files: [probe] }));
+    } catch (e) { $('share').hidden = true; }
+  }
+
+  if (hasClaude && framed) {
+    $('btns-zip').hidden = false; $('zip-hint').hidden = false;
+    $('save-zip').disabled = true;
+    window.claude.use('downloads').then(ns => {
+      downloads = ns;
+      if (ns) { saveMode = 'zip'; $('save-zip').disabled = !last.pts; }
+      else { saveMode = 'none'; status("Saving files isn't available in this view. Use the waypoint list instead.", 'err'); }
+    }, () => { saveMode = 'none'; status("Saving files isn't available in this view.", 'err'); });
+  } else {
+    showDirect();
+  }
+
+  update();
+})();
+</script>

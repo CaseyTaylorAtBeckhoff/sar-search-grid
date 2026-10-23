@@ -1,0 +1,84 @@
+# Runs every check, then publishes the page to GitHub Pages.
+# A failing check stops the deploy, so a broken build never reaches the boats.
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test and build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install GPSBabel (reference for .hwr / .gpx checks)
+        run: sudo apt-get update && sudo apt-get install -y gpsbabel
+
+      - name: Coordinate parsing and geometry
+        run: node test/util-test.js
+
+      - name: Grid matches foursided.py, .hwr matches GPSBabel
+        run: node test/verify.js
+
+      - name: Build page
+        run: |
+          python build.py
+          mkdir -p site
+          cp dist/index.html site/index.html
+
+      - name: Install headless browser
+        run: |
+          pip install playwright==1.63.0 pillow
+          python -m playwright install --with-deps chromium
+
+      - name: Browser checks (phones, tablet, desktop)
+        run: python test/deploy_test.py
+
+      - name: Keep screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: screenshots
+          path: test-output/*.png
+          if-no-files-found: ignore
+
+      - uses: actions/configure-pages@v6
+        if: github.event_name != 'pull_request'
+
+      - uses: actions/upload-pages-artifact@v5
+        if: github.event_name != 'pull_request'
+        with:
+          path: site
+
+  deploy:
+    name: Publish to GitHub Pages
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

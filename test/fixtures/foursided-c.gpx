@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd" version="1.1" creator="gpx.py -- https://github.com/tkrajina/gpxpy">
+  <rte>
+    <name>Hit3</name>
+    <rtept lat="41.3650583" lon="-112.073523">
+      <time>2013-08-21T01:01:00</time>
+      <name>wp1</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.073523">
+      <time>2013-08-21T01:02:00</time>
+      <name>wp2</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.0738598">
+      <time>2013-08-21T01:03:00</time>
+      <name>wp3</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.0738598">
+      <time>2013-08-21T01:04:00</time>
+      <name>wp4</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.0741966">
+      <time>2013-08-21T01:05:00</time>
+      <name>wp5</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.0741966">
+      <time>2013-08-21T01:06:00</time>
+      <name>wp6</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.07453339999999">
+      <time>2013-08-21T01:07:00</time>
+      <name>wp7</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.07453339999999">
+      <time>2013-08-21T01:08:00</time>
+      <name>wp8</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.07487019999999">
+      <time>2013-08-21T01:09:00</time>
+      <name>wp9</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.07487019999999">
+      <time>2013-08-21T01:10:00</time>
+      <name>wp10</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.07520699999999">
+      <time>2013-08-21T01:11:00</time>
+      <name>wp11</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.07520699999999">
+      <time>2013-08-21T01:12:00</time>
+      <name>wp12</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.07554379999999">
+      <time>2013-08-21T01:13:00</time>
+      <name>wp13</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.07554379999999">
+      <time>2013-08-21T01:14:00</time>
+      <name>wp14</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.07588059999999">
+      <time>2013-08-21T01:15:00</time>
+      <name>wp15</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.07588059999999">
+      <time>2013-08-21T01:16:00</time>
+      <name>wp16</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.0762174">
+      <time>2013-08-21T01:17:00</time>
+      <name>wp17</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.0762174">
+      <time>2013-08-21T01:18:00</time>
+      <name>wp18</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.0765542">
+      <time>2013-08-21T01:19:00</time>
+      <name>wp19</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.0765542">
+      <time>2013-08-21T01:20:00</time>
+      <name>wp20</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.076891">
+      <time>2013-08-21T01:21:00</time>
+      <name>wp21</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.076891">
+      <time>2013-08-21T01:22:00</time>
+      <name>wp22</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.0772278">
+      <time>2013-08-21T01:23:00</time>
+      <name>wp23</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.0772278">
+      <time>2013-08-21T01:24:00</time>
+      <name>wp24</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.0775646">
+      <time>2013-08-21T01:25:00</time>
+      <name>wp25</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.0775646">
+      <time>2013-08-21T01:26:00</time>
+      <name>wp26</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.0779014">
+      <time>2013-08-21T01:27:00</time>
+      <name>wp27</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.0779014">
+      <time>2013-08-21T01:28:00</time>
+      <name>wp28</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.0782382">
+      <time>2013-08-21T01:29:00</time>
+      <name>wp29</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.0782382">
+      <time>2013-08-21T01:30:00</time>
+      <name>wp30</name>
+    </rtept>
+    <rtept lat="41.36964" lon="-112.078575">
+      <time>2013-08-21T01:31:00</time>
+      <name>wp31</name>
+    </rtept>
+    <rtept lat="41.3650583" lon="-112.078575">
+      <time>2013-08-21T01:32:00</time>
+      <name>wp32</name>
+    </rtept>
+  </rte>
+</gpx>
